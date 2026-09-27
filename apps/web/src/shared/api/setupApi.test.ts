@@ -28,6 +28,16 @@ describe('setupApi', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
       '{"code":"SYSTEM_ALREADY_INITIALIZED","message":"Already initialized."}', { status: 409 },
     ))
-    await expect(getSetupStatus()).rejects.toThrow('Already initialized.')
+    await expect(getSetupStatus()).rejects.toMatchObject({ kind: 'http', status: 409, message: 'Already initialized.' })
+  })
+
+  it('preserves setup-status server and network failures', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 500 }))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    await expect(getSetupStatus()).rejects.toMatchObject({ kind: 'http', status: 500 })
+    await expect(getSetupStatus()).rejects.toMatchObject({ kind: 'network', status: null })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })

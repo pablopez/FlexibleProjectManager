@@ -1,3 +1,5 @@
+import { requestJson } from './apiError'
+
 export type SetupStatusResponse = { initialized: boolean }
 
 export type InitializeSetupRequest = {
@@ -22,26 +24,16 @@ export type SetupInitializationResponse = {
   administrator: { id: string; email: string; displayName: string }
 }
 
-type ApiError = { code?: string; message?: string }
-
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
-async function readResponse<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as T & ApiError
-  if (!response.ok) {
-    throw new Error(body.message ?? `Setup request failed with HTTP ${response.status}.`)
-  }
-  return body
-}
-
 export async function getSetupStatus(): Promise<SetupStatusResponse> {
-  return readResponse(await fetch(`${apiBaseUrl}/setup/status`, { headers: { Accept: 'application/json' } }))
+  return requestJson(`${apiBaseUrl}/setup/status`, { headers: { Accept: 'application/json' } }, 'Setup request')
 }
 
 export async function initializeSetup(request: InitializeSetupRequest): Promise<SetupInitializationResponse> {
-  return readResponse(await fetch(`${apiBaseUrl}/setup/initialize`, {
+  return requestJson(`${apiBaseUrl}/setup/initialize`, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
-  }))
+  }, 'Setup request')
 }

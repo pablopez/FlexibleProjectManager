@@ -1,3 +1,5 @@
+import { request, requestJson } from './apiError'
+
 export type TokenResponse = { accessToken: string; expiresIn: number }
 
 export type CurrentUserResponse = {
@@ -11,44 +13,33 @@ export type CurrentUserResponse = {
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
-async function readResponse<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as T & { message?: string }
-  if (!response.ok) {
-    throw new Error(body.message ?? `Authentication request failed with HTTP ${response.status}.`)
-  }
-  return body
-}
-
 export async function login(email: string, password: string): Promise<TokenResponse> {
-  return readResponse(await fetch(`${apiBaseUrl}/auth/login`, {
+  return requestJson(`${apiBaseUrl}/auth/login`, {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  }))
+  }, 'Authentication request')
 }
 
 export async function refreshSession(): Promise<TokenResponse> {
-  return readResponse(await fetch(`${apiBaseUrl}/auth/refresh`, {
+  return requestJson(`${apiBaseUrl}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json' },
-  }))
+  }, 'Authentication request')
 }
 
 export async function logout(): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}/auth/logout`, {
+  await request(`${apiBaseUrl}/auth/logout`, {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json' },
-  })
-  if (!response.ok) {
-    throw new Error(`Logout failed with HTTP ${response.status}.`)
-  }
+  }, 'Logout request')
 }
 
 export async function getCurrentUser(token: string): Promise<CurrentUserResponse> {
-  return readResponse(await fetch(`${apiBaseUrl}/auth/me`, {
+  return requestJson(`${apiBaseUrl}/auth/me`, {
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-  }))
+  }, 'Current-user request')
 }

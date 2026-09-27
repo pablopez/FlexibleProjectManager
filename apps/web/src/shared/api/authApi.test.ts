@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getCurrentUser, login, logout, refreshSession } from './authApi'
+import { ApiError } from './apiError'
 
 describe('authApi', () => {
   afterEach(() => vi.restoreAllMocks())
@@ -22,6 +23,21 @@ describe('authApi', () => {
     await expect(refreshSession()).resolves.toMatchObject({ accessToken: 'new-token' })
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/refresh', expect.objectContaining({ method: 'POST', credentials: 'include' }))
     expect((fetchMock.mock.calls[0][1] as RequestInit).body).toBeUndefined()
+  })
+
+  it('preserves refresh HTTP 401 and 500 statuses', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('{"message":"Unauthorized"}', { status: 401 }))
+      .mockResolvedValueOnce(new Response('{"message":"Server error"}', { status: 500 }))
+
+    await expect(refreshSession()).rejects.toMatchObject({ kind: 'http', status: 401 })
+    await expect(refreshSession()).rejects.toMatchObject({ kind: 'http', status: 500 })
+  })
+
+  it('preserves network failures separately from HTTP failures', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+    await expect(refreshSession()).rejects.toMatchObject({ kind: 'network', status: null })
+    await expect(refreshSession()).rejects.toBeInstanceOf(ApiError)
   })
 
   it('uses a bearer token for the current user and clears the server session on logout', async () => {
