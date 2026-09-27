@@ -17,3 +17,11 @@ spring:
 server:
   error:
     include-message: never
+
+app:
+  security:
+    access-token-lifetime: PT15M
+    refresh-token-lifetime: P30D
+    jwt-key-path: ${FPM_JWT_KEY_PATH:${user.home}/.flexible-project-manager/security/jwt-keypair.pem}
+    refresh-cookie-secure: ${FPM_REFRESH_COOKIE_SECURE:false}
+    allowed-origin: ${FPM_ALLOWED_ORIGIN:http://localhost:5173}
