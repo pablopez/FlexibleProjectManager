@@ -119,6 +119,8 @@ See:
 - `docs/architecture.md`
 - `docs/domain.md`
 - `docs/adr/0001-platform-core.md`
+- `docs/adr/0002-database-migrations.md`
+- `docs/adr/0003-authentication.md`
 
 ## Status
 

@@ -12,6 +12,8 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       await login(email, password)
+    } catch {
+      // AuthProvider owns and exposes the user-facing authentication error.
     } finally {
       setSubmitting(false)
     }

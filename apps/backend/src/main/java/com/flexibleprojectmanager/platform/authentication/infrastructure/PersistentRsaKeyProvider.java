@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.StandardOpenOption;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -13,6 +14,7 @@ import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -27,24 +29,51 @@ public class PersistentRsaKeyProvider {
 
     public synchronized KeyPair loadOrCreate() {
         try {
+            createSecureDirectory();
             if (Files.exists(keyPath)) {
+                restrictPermissions();
                 return read(Files.readString(keyPath));
             }
             KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
             generator.initialize(2048);
             KeyPair keyPair = generator.generateKeyPair();
-            Files.createDirectories(keyPath.toAbsolutePath().getParent());
+            createSecureDirectory();
             Files.writeString(keyPath, serialize(keyPair), StandardCharsets.US_ASCII,
                     StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            restrictPermissions();
             return keyPair;
         } catch (FileAlreadyExistsException race) {
             try {
+                restrictPermissions();
                 return read(Files.readString(keyPath));
             } catch (Exception exception) {
                 throw new IllegalStateException("JWT signing key could not be loaded.", exception);
             }
         } catch (Exception exception) {
             throw new IllegalStateException("JWT signing key could not be loaded.", exception);
+        }
+    }
+
+    private void createSecureDirectory() throws java.io.IOException {
+        Path directory = keyPath.toAbsolutePath().getParent();
+        if (directory != null) {
+            Files.createDirectories(directory);
+            restrictPermissions(directory, Set.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.OWNER_EXECUTE));
+        }
+    }
+
+    private void restrictPermissions() throws java.io.IOException {
+        restrictPermissions(keyPath, Set.of(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE));
+    }
+
+    private void restrictPermissions(Path path, Set<PosixFilePermission> permissions) throws java.io.IOException {
+        if (path.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+            Files.setPosixFilePermissions(path, permissions);
         }
     }
 

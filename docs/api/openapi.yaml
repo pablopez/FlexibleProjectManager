@@ -3,8 +3,7 @@ info:
   title: Flexible Project Manager API
   version: 0.1.0
   description: Initial API contract for Flexible Project Manager. This version defines the reusable Platform Core including
-    setup, authentication, organization, installation, licensing, users, roles, projects, settings, notifications, audit,
-    events and system information.
+    setup, authentication, organization, installation, licensing, users, roles, projects, settings, audit and events.
 servers:
 - url: http://localhost:8080/api/v1
   description: Local development

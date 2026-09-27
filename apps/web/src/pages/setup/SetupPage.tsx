@@ -25,6 +25,8 @@ export function SetupPage() {
     try {
       await initialize(form)
       navigate('/login', { replace: true })
+    } catch {
+      // AuthProvider owns and exposes the user-facing setup error.
     } finally {
       setSubmitting(false)
     }

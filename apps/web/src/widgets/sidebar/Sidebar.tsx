@@ -10,7 +10,11 @@ export function Sidebar() {
   const items = visibleNavigation(user?.roles ?? [])
 
   async function signOut() {
-    await logout()
+    try {
+      await logout()
+    } catch {
+      // AuthProvider clears the local session in its finally block.
+    }
   }
 
   return (
