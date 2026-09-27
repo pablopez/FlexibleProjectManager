@@ -36,6 +36,7 @@ public class NimbusAccessTokenIssuer implements AccessTokenIssuer {
                 .claim("organizationId", identity.organizationId().toString())
                 .claim("memberId", identity.memberId().toString())
                 .claim("roles", identity.roles())
+                .claim("permissions", identity.permissions())
                 .issuedAt(now)
                 .expiresAt(now.plus(lifetime))
                 .id(UUID.randomUUID().toString())
