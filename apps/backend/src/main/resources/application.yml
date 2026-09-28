@@ -7,7 +7,7 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
-    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    database-platform: com.flexibleprojectmanager.platform.shared.infrastructure.PlatformSQLiteDialect
   flyway:
     enabled: true
     validate-on-migrate: true

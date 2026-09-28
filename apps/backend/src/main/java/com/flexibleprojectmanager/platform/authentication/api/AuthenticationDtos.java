@@ -1,6 +1,5 @@
 package com.flexibleprojectmanager.platform.authentication.api;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.validation.constraints.Email;
@@ -28,6 +27,4 @@ public final class AuthenticationDtos {
     public record OrganizationSummary(UUID id, String name) {
     }
 
-    public record ErrorResponse(String code, String message, int status, Instant timestamp, String path) {
-    }
 }

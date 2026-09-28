@@ -5,6 +5,8 @@ import { SetupPage } from '../../pages/setup/SetupPage'
 import { LoginPage } from '../../pages/login/LoginPage'
 import { DashboardPage } from '../../pages/dashboard/DashboardPage'
 import { ProjectsPage } from '../../pages/projects/ProjectsPage'
+import { CreateProjectPage } from '../../pages/projects/CreateProjectPage'
+import { ProjectDetailPage } from '../../pages/projects/ProjectDetailPage'
 import { UsersPage } from '../../pages/users/UsersPage'
 import { OrganizationPage } from '../../pages/organization/OrganizationPage'
 import { LicensePage } from '../../pages/license/LicensePage'
@@ -72,6 +74,8 @@ export function AppRouter() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="projects" element={<ProjectsPage />} />
+        <Route path="projects/new" element={<CreateProjectPage />} />
+        <Route path="projects/:projectId" element={<ProjectDetailPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="organization" element={<OrganizationPage />} />
         <Route path="license" element={<LicensePage />} />

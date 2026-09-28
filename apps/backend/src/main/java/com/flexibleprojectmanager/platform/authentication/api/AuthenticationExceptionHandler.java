@@ -11,7 +11,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
 import com.flexibleprojectmanager.platform.authentication.application.AuthenticationFailedException;
-import com.flexibleprojectmanager.platform.authentication.api.AuthenticationDtos.ErrorResponse;
+import com.flexibleprojectmanager.platform.shared.api.ErrorResponse;
 
 @RestControllerAdvice(assignableTypes = AuthenticationController.class)
 public class AuthenticationExceptionHandler {

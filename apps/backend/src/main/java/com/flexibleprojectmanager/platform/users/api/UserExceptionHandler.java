@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
-import com.flexibleprojectmanager.platform.authentication.api.AuthenticationDtos.ErrorResponse;
+import com.flexibleprojectmanager.platform.shared.api.ErrorResponse;
 import com.flexibleprojectmanager.platform.users.application.UserNotFoundException;
 
 @RestControllerAdvice(assignableTypes = UserController.class)

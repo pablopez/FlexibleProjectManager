@@ -11,7 +11,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
 import com.flexibleprojectmanager.platform.setup.application.SystemAlreadyInitializedException;
-import com.flexibleprojectmanager.platform.setup.api.SetupDtos.ErrorResponse;
+import com.flexibleprojectmanager.platform.shared.api.ErrorResponse;
 
 @RestControllerAdvice(assignableTypes = SetupController.class)
 public class SetupExceptionHandler {

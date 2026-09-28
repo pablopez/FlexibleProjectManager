@@ -60,6 +60,4 @@ public final class SetupDtos {
     public record SetupAdministratorResponse(UUID id, String email, String displayName) {
     }
 
-    public record ErrorResponse(String code, String message, int status, Instant timestamp, String path) {
-    }
 }
