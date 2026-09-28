@@ -40,6 +40,10 @@ Represents a concrete installation of the application.
 
 An installation belongs to an organization.
 
+In the local deployment model, setup creates exactly one installation associated
+with the single organization. The installation identity is its server-controlled
+immutable UUID; management operations cannot create, transfer, or replace it.
+
 Examples:
 
 ```text
