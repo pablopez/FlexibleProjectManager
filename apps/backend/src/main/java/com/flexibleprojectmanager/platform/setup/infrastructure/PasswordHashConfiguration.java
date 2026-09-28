@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.flexibleprojectmanager.platform.setup.application.PasswordHasher;
+import com.flexibleprojectmanager.platform.shared.application.security.PasswordHasher;
 
 @Configuration
 public class PasswordHashConfiguration {

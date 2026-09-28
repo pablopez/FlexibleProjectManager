@@ -172,6 +172,10 @@ DISABLED
 
 This association allows the domain to support multiple organizations in future cloud deployments.
 
+An organization must always retain at least one effective active administrator. An effective active administrator is an
+ACTIVE user with an ACTIVE organization membership and the ADMIN role. Disabling the last such administrator or removing
+ADMIN from the last such administrator is rejected.
+
 ## Role
 
 Represents a named collection of permissions.

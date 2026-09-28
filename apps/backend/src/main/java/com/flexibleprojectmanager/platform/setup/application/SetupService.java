@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.flexibleprojectmanager.platform.shared.application.security.PasswordHasher;
+
 @Service
 public class SetupService {
     private static final String APPLICATION_VERSION = "0.1.0";
