@@ -273,9 +273,14 @@ ARCHIVED
 
 For MVP 0.1 a project contains no domain-specific functionality.
 
-## UserSetting
+## UserPreferences
 
-Represents a user preference.
+Represents preferences owned by the authenticated user. Preferences are not
+organization-, installation-, project-, or module-owned.
+
+The preference row is optional. Absence of a row means the effective defaults
+are English and the light theme. A row is created only after the first
+successful update and is deleted with its owning user.
 
 Initial supported settings:
 
@@ -284,7 +289,7 @@ language
 theme
 ```
 
-Initial values:
+Supported values:
 
 ```text
 language:

@@ -79,6 +79,33 @@ class LicenseIntegrationTest {
         mockMvc.perform(get("/api/v1/license/entitlements").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.maxUsers").value(2))
                 .andExpect(jsonPath("$.licenseFeatures").isEmpty());
+        mockMvc.perform(get("/api/v1/settings/user").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.language").value("en"))
+                .andExpect(jsonPath("$.theme").value("light"));
+        org.junit.jupiter.api.Assertions.assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM user_preferences", Integer.class));
+        mockMvc.perform(patch("/api/v1/settings/user").header("Authorization", bearer(token)).contentType("application/json")
+                        .content("{\"theme\":\"dark\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.language").value("en"))
+                .andExpect(jsonPath("$.theme").value("dark"));
+        mockMvc.perform(patch("/api/v1/settings/user").header("Authorization", bearer(token)).contentType("application/json")
+                        .content("{\"language\":\"es\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.language").value("es"))
+                .andExpect(jsonPath("$.theme").value("dark"));
+        mockMvc.perform(patch("/api/v1/settings/user").header("Authorization", bearer(token)).contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(patch("/api/v1/settings/user").header("Authorization", bearer(token)).contentType("application/json")
+                        .content("{\"language\":null}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch("/api/v1/settings/user").header("Authorization", bearer(token)).contentType("application/json")
+                        .content("{\"theme\":null}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch("/api/v1/settings/user").header("Authorization", bearer(token)).contentType("application/json")
+                        .content("{\"unknown\":\"value\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/settings/user").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.language").value("es"))
+                .andExpect(jsonPath("$.theme").value("dark"));
         mockMvc.perform(post("/api/v1/projects").header("Authorization", bearer(token)).contentType("application/json")
                         .content("{\"name\":\"Licensed project\"}"))
                 .andExpect(status().isCreated());
@@ -118,6 +145,8 @@ class LicenseIntegrationTest {
                 .andExpect(jsonPath("$.licenseFeatures").isEmpty());
         mockMvc.perform(get("/api/v1/projects").header("Authorization", bearer(token)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
+        mockMvc.perform(get("/api/v1/settings/user").header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
         jdbc.update("UPDATE installation_licenses SET signed_license = ? WHERE installation_id = ?", activeSignedLicense, installationId.toString());
     }
 
@@ -128,6 +157,8 @@ class LicenseIntegrationTest {
         mockMvc.perform(get("/api/v1/license").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("EXPIRED"));
         mockMvc.perform(get("/api/v1/projects").header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
+        mockMvc.perform(get("/api/v1/settings/user").header("Authorization", bearer(token)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
         jdbc.update("UPDATE installation_licenses SET signed_license = ? WHERE installation_id = ?", activeSignedLicense, installationId.toString());
     }
@@ -171,6 +202,8 @@ class LicenseIntegrationTest {
         mockMvc.perform(get("/api/v1/users").header("Authorization", bearer(recoveryToken)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
         mockMvc.perform(get("/api/v1/organization").header("Authorization", bearer(recoveryToken)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
+        mockMvc.perform(get("/api/v1/settings/user").header("Authorization", bearer(recoveryToken)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("LICENSE_NOT_ACTIVE"));
         mockMvc.perform(post("/api/v1/license/activate").header("Authorization", bearer(recoveryToken)).contentType("application/json")
                         .content("{\"signedLicense\":\"" + activeSignedLicense + "\"}"))

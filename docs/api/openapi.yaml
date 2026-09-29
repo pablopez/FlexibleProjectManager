@@ -695,6 +695,8 @@ paths:
                 $ref: '#/components/schemas/UserSettingsResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     patch:
       tags:
       - Settings
@@ -719,6 +721,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /audit:
     get:
       tags:

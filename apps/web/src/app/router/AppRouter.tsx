@@ -14,6 +14,7 @@ import { OrganizationPage } from '../../pages/organization/OrganizationPage'
 import { LicensePage } from '../../pages/license/LicensePage'
 import { SettingsPage } from '../../pages/settings/SettingsPage'
 import { resolveProtectedPath, resolveRootPath } from './routePolicy'
+import { useUserPreferences } from '../../shared/preferences/UserPreferencesProvider'
 
 export function LoadingScreen() {
   return <main className="state-screen" aria-live="polite">Checking your session…</main>
@@ -21,10 +22,11 @@ export function LoadingScreen() {
 
 export function ErrorScreen() {
   const { retry } = useAuth()
+  const { t } = useUserPreferences()
   return (
     <main className="state-screen" aria-live="assertive">
-      <h1>Unable to connect to Flexible Project Manager.</h1>
-      <button type="button" onClick={() => void retry()}>Try again</button>
+      <h1>{t('common.connectionError')}</h1>
+      <button type="button" onClick={() => void retry()}>{t('common.tryAgain')}</button>
     </main>
   )
 }

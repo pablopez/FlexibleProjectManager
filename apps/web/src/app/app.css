@@ -2,26 +2,52 @@
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: #172033;
   background: #f4f7fb;
+  --page-bg: #f4f7fb;
+  --surface: #ffffff;
+  --border: #dfe6f0;
+  --text: #172033;
+  --muted: #667085;
+  --lead: #46546b;
+  --eyebrow: #4667a8;
+  --user-context: #667085;
+  --input-border: #cbd5e1;
+  --public-bg: linear-gradient(135deg, #eef4ff, #f8fafc);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
+:root[data-theme='dark'] {
+  color: #e8edf7;
+  background: #101827;
+  --page-bg: #101827;
+  --surface: #182235;
+  --border: #33415d;
+  --text: #e8edf7;
+  --muted: #aab7ce;
+  --lead: #c4d0e5;
+  --eyebrow: #91b1f0;
+  --user-context: #aab7ce;
+  --input-border: #4b5c7c;
+  --public-bg: linear-gradient(135deg, #111d33, #182235);
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button, input { font: inherit; }
+body { margin: 0; min-width: 320px; background: var(--page-bg); color: var(--text); }
+button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 
 .state-screen, .public-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-.public-page { background: linear-gradient(135deg, #eef4ff, #f8fafc); }
-.card { width: min(100%, 480px); padding: 36px; background: white; border: 1px solid #dfe6f0; border-radius: 16px; box-shadow: 0 18px 50px rgb(26 49 87 / 10%); }
+.public-page { background: var(--public-bg); }
+.card { width: min(100%, 480px); padding: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 18px 50px rgb(26 49 87 / 10%); }
 .card h1 { margin: 6px 0 10px; }
-.eyebrow { margin: 0 0 8px; color: #4667a8; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.muted, .header-organization { color: #667085; }
-.lead { color: #46546b; font-size: 1.1rem; }
+.eyebrow { margin: 0 0 8px; color: var(--eyebrow); font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.muted, .header-organization { color: var(--muted); }
+.lead { color: var(--lead); font-size: 1.1rem; }
 .error { padding: 10px 12px; color: #a12626; background: #fff0f0; border-radius: 8px; }
+.alert-error { padding: 10px 12px; color: #a12626; background: #fff0f0; border-radius: 8px; }
 .stack-form { display: grid; gap: 16px; margin-top: 24px; }
 .stack-form label { display: grid; gap: 7px; font-weight: 600; }
-input { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+input, textarea, select { width: 100%; padding: 11px 12px; color: var(--text); background: var(--surface); border: 1px solid var(--input-border); border-radius: 8px; }
 button { border: 0; border-radius: 8px; padding: 11px 16px; color: white; background: #315aa6; font-weight: 700; }
 button:disabled { cursor: wait; opacity: .6; }
 
@@ -33,12 +59,15 @@ button:disabled { cursor: wait; opacity: .6; }
 .nav-link:hover, .nav-link-active { color: white; background: #2b4574; }
 .logout-button { width: 100%; margin-top: auto; color: #dbe7ff; background: transparent; border: 1px solid #53688f; }
 .app-main { min-width: 0; flex: 1; }
-.app-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 78px; padding: 16px 32px; background: white; border-bottom: 1px solid #e2e8f0; }
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 78px; padding: 16px 32px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .header-title { margin: 0; font-weight: 800; }
 .header-organization { margin: 4px 0 0; font-size: .85rem; }
 .user-context { display: grid; gap: 2px; text-align: right; }
-.user-context span { color: #667085; font-size: .85rem; }
+.user-context span { color: var(--user-context); font-size: .85rem; }
 .content { padding: 40px; }
+.alert-success { padding: 10px 12px; color: #17663a; background: #e8f7ee; border-radius: 8px; }
+.settings-form { max-width: 480px; }
+:root[data-theme='dark'] .error, :root[data-theme='dark'] .alert-error { color: #ffb4b4; background: #4a2028; }
 .page-section { max-width: 800px; }
 .menu-button { display: none; position: fixed; z-index: 3; top: 14px; left: 14px; padding: 8px 11px; }
 
