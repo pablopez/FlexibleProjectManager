@@ -7,14 +7,15 @@
 
 Flexible Project Manager is a reusable Platform Core intended to support different future application domains and modules, such as Video QC, text editing, photo editing, and other integrations.
 
-The Platform Core needs a licensing mechanism that can:
+The Platform Core requires a licensing mechanism that can:
 
 - operate in local/offline deployments;
 - verify that a license was issued by a trusted authority;
 - bind a license to the immutable local installation identity;
-- support time-limited and perpetual licenses;
-- expose generic feature entitlements to future modules;
-- enforce selected local capacity limits such as the number of active users;
+- enforce the general validity period of the Flexible Project Manager installation;
+- enforce the maximum number of effective active users;
+- carry extensible module-specific license feature keywords;
+- expose those feature keywords without interpreting module-specific semantics;
 - avoid embedding signing secrets in deployed installations;
 - remain independent of future domain modules.
 
@@ -26,7 +27,9 @@ This UUID is the installation identity used by Licensing.
 
 The licensing system must not depend on unstable machine characteristics such as MAC addresses, hostnames, CPU identifiers, disk serial numbers, or operating-system machine identifiers.
 
-The Platform Core must also remain independent of future modules. Licensing may expose generic entitlements that modules consume, but Licensing must not depend on those modules.
+The Platform Core must remain independent of future modules. Licensing may verify and expose module-specific feature keywords, but each module owns the meaning and enforcement of its own feature keywords.
+
+---
 
 ## Decision
 
@@ -40,34 +43,56 @@ using the JWS algorithm identifier:
 
 `EdDSA`
 
-A license is bound to exactly one immutable `Installation.id`.
+A license is bound to exactly one immutable:
 
-The deployed Flexible Project Manager runtime contains only trusted public verification keys. The private signing key never belongs to the deployed Platform Core runtime.
+`Installation.id`
+
+The deployed Flexible Project Manager runtime contains only trusted public verification keys.
+
+The private signing key never belongs to the deployed Platform Core runtime.
 
 Normal license verification and use must work offline without contacting a remote licensing service.
 
-## Core Availability Without a License
+The general Platform Core license controls:
 
-The Platform Core remains usable without an activated license.
+- license validity/duration;
+- maximum number of effective active users;
+- a set of opaque `licenseFeatures` keywords.
 
-`UNLICENSED` does not make the application unusable.
+The Platform Core does not interpret module-specific feature semantics.
 
-Core capabilities remain available, including:
+---
 
-- setup;
-- authentication;
-- organization management;
-- installation information;
-- generic projects;
-- user management.
+## General License Scope
 
-Licensing is primarily responsible for:
+The general license applies to the Flexible Project Manager installation as a whole.
 
-- future commercial/domain modules;
-- generic feature entitlements;
-- local capacity limits such as `maxUsers`.
+Its two general enforceable conditions are:
 
-Core functionality is therefore not gated through feature identifiers such as `core.projects` or `core.users`.
+1. license validity;
+2. `maxUsers`.
+
+In addition, the same signed license carries an extensible array of `licenseFeatures`.
+
+The presence of a module-specific feature keyword means that the license grants that capability if a module that understands the keyword is installed.
+
+If a licensed feature belongs to a module that is not installed, it has no effect and does not cause an error.
+
+Installing a module does not itself grant any license feature.
+
+Therefore:
+
+```text
+installed != licensed
+```
+
+A module may be installed but not licensed.
+
+A license may also contain feature keywords for a module that is not installed.
+
+Both situations are valid.
+
+---
 
 ## License Document
 
@@ -83,11 +108,12 @@ Conceptually:
   "type": "SUBSCRIPTION",
   "issuedAt": "2026-09-29T08:00:00Z",
   "expiresAt": "2027-09-29T08:00:00Z",
-  "limits": {
-    "maxUsers": 25
-  },
-  "features": [
-    "module.video-qc"
+  "maxUsers": 25,
+  "licenseFeatures": [
+    "module.video-qc",
+    "video-qc.hdr",
+    "video-qc.imf",
+    "video-qc.automated-qc"
   ]
 }
 ```
@@ -95,6 +121,12 @@ Conceptually:
 The exact serialized field names form part of the signed license format and are therefore versioned.
 
 The payload must not be trusted before successful signature verification.
+
+`maxUsers` is a general Platform Core license condition.
+
+`licenseFeatures` is an extensible array of opaque keyword identifiers.
+
+---
 
 ## JWS Protected Header
 
@@ -115,6 +147,8 @@ Rules:
 - unknown key identifiers are rejected.
 
 The `kid` mechanism allows future key rotation while retaining verification support for licenses signed by older trusted keys.
+
+---
 
 ## License Types
 
@@ -137,7 +171,7 @@ Rules:
 
 ### PERPETUAL
 
-`expiresAt` must be absent.
+`expiresAt` must be absent or `null`.
 
 ### DEVELOPMENT
 
@@ -147,17 +181,35 @@ Development licenses are deliberately time-limited so that internal/development 
 
 No additional license types are introduced in MVP 0.1.
 
+---
+
 ## Installation Binding
 
-Each signed license contains `installationId`.
+Each signed license contains:
 
-During verification it must equal the immutable local `Installation.id`.
+`installationId`
 
-A mismatch makes the license unusable and should result in a stable application error such as:
+During verification it must equal the immutable local:
+
+`Installation.id`
+
+Conceptually:
+
+```text
+verifiedLicense.installationId
+        ==
+currentInstallation.id
+```
+
+A mismatch makes the license unusable.
+
+The application reports a stable application error such as:
 
 `LICENSE_INSTALLATION_MISMATCH`
 
-Licensing does not depend on:
+No alternative hardware identity is used.
+
+In particular, Licensing does not depend on:
 
 - MAC address;
 - CPU identifier;
@@ -165,6 +217,8 @@ Licensing does not depend on:
 - hostname;
 - operating-system machine identifier;
 - `installationKey`.
+
+---
 
 ## Signing-Key Ownership
 
@@ -197,6 +251,8 @@ The private key must not be stored in:
 
 License generation is performed by a separate issuer tool or service.
 
+---
+
 ## Key Rotation
 
 Trusted verification keys are identified by `kid`.
@@ -213,6 +269,10 @@ The runtime may trust more than one public key simultaneously.
 Removing an old verification key invalidates the runtime's ability to verify licenses signed by that key.
 
 Therefore key removal is an explicit compatibility decision and must not happen automatically.
+
+Private-key rotation and license issuance are outside the Platform Core runtime.
+
+---
 
 ## Verification Boundary
 
@@ -244,12 +304,16 @@ The verifier must validate at least:
 - coherent `issuedAt`;
 - coherent `expiresAt`;
 - type-specific expiration rules;
-- valid limits;
-- syntactically valid feature identifiers.
+- valid `maxUsers`;
+- syntactically valid `licenseFeatures`.
 
-Only after cryptographic and structural verification succeeds may the payload become a trusted `VerifiedLicense`.
+Only after cryptographic and structural verification succeeds may the payload become a trusted:
+
+`VerifiedLicense`
 
 Application code must never make licensing decisions using an unverified payload.
+
+---
 
 ## Activation
 
@@ -277,6 +341,8 @@ An invalid candidate license must never remove or corrupt a currently valid lice
 
 Replacement occurs atomically.
 
+---
+
 ## Persistence
 
 The signed license is the authoritative persisted license artifact.
@@ -296,9 +362,20 @@ updated_at
 
 The database must not become an independently editable copy of signed claims.
 
-Fields such as expiry, type, features, and limits are derived from verification of the signed license.
+Fields such as:
+
+- type;
+- expiry;
+- `maxUsers`;
+- `licenseFeatures`;
+
+must not be trusted from independently mutable database columns.
+
+They are derived by verifying the signed license.
 
 Additional indexed or projection fields may be introduced later if query requirements justify them, but the signed license remains authoritative.
+
+---
 
 ## Effective License Status
 
@@ -312,13 +389,57 @@ Initial effective statuses are:
 
 `INVALID` may be used internally or diagnostically when persisted license material cannot be verified.
 
+Conceptually:
+
+```text
+no activated license
+    -> UNLICENSED
+
+valid signature
++ matching installation
++ non-expired license
+    -> ACTIVE
+
+valid signed time-limited license
++ now >= expiresAt
+    -> EXPIRED
+```
+
 A perpetual license remains `ACTIVE` when all other verification rules pass.
 
 No scheduled database mutation is required to move a license from `ACTIVE` to `EXPIRED`.
 
 Effective status is calculated from verified signed data and the current clock.
 
-If the existing `Installation.status` model contains `UNLICENSED`, it must not be treated as the authoritative licensing decision. Effective licensing status and entitlements come from the verified license state defined by this ADR.
+If the existing `Installation.status` model contains a value such as `UNLICENSED`, it must not be treated as the authoritative licensing decision.
+
+Effective licensing status comes from the verified license state defined by this ADR.
+
+---
+
+## General Validity Enforcement
+
+License validity is a general Platform Core condition.
+
+Normal protected application operations require an effective `ACTIVE` license.
+
+The exact technical enforcement mechanism should be centralized as much as possible and must not require every use case to understand JWS, cryptography, or persistence details.
+
+The following remain accessible when the installation is `UNLICENSED`, `EXPIRED`, or otherwise not effectively licensed:
+
+- first-run setup where applicable;
+- authentication needed to administer the installation;
+- license status retrieval;
+- license activation/replacement;
+- minimum administration required to restore a valid license.
+
+The application must not delete or mutate user/project data merely because a license is absent, expired, or invalid.
+
+Existing data remains persisted.
+
+The exact read-only/degraded UX may evolve, but the backend remains authoritative about which operations require an active license.
+
+---
 
 ## Clock Handling
 
@@ -334,58 +455,13 @@ MVP 0.1 therefore does not implement:
 
 This limitation is accepted for the local/offline licensing model.
 
-## Feature Entitlements
+More advanced clock-tampering protection requires a separate architectural decision.
 
-Licenses may contain generic feature identifiers for optional/future modules.
-
-Examples:
-
-```text
-module.video-qc
-module.text-editor
-module.photo-editor
-```
-
-Feature identifiers are opaque strings from the perspective of Licensing.
-
-Licensing must not depend on the implementation of those features or modules.
-
-Dependency direction:
-
-```text
-future module -> entitlement abstraction
-licensing     -> entitlement abstraction implementation
-
-licensing -X-> future module
-```
-
-Core Platform functionality is not feature-gated in MVP 0.1.
-
-## Entitlement Application Boundary
-
-Licensing exposes a small application-facing entitlement abstraction.
-
-Conceptually:
-
-```java
-public interface EntitlementProvider {
-    boolean hasFeature(String feature);
-    OptionalInt maxUsers();
-}
-```
-
-The exact Java API may evolve when the first real domain module consumes it, but the dependency direction is fixed.
-
-Do not introduce in MVP 0.1:
-
-- plugin license managers;
-- module registries;
-- entitlement event buses;
-- per-module licensing domain objects.
+---
 
 ## User Limit
 
-`maxUsers` is an enforceable local entitlement.
+`maxUsers` is a general Platform Core license condition.
 
 It counts effective active users, not historical/disabled users.
 
@@ -397,65 +473,301 @@ AND
 OrganizationMember.status == ACTIVE
 ```
 
-Disabled users do not consume a licensed seat.
+Disabled users do not consume a licensed user slot.
 
-Capacity must be checked when an operation can increase the number of active users, including:
+Example:
+
+```text
+maxUsers = 10
+
+8 effective ACTIVE users
+15 DISABLED users
+
+licensed usage = 8 / 10
+```
+
+Capacity must be checked when an operation can increase the number of effective active users, including:
 
 - creating a new user that starts as `ACTIVE`;
-- reactivating a `DISABLED` user.
+- reactivating a `DISABLED` user;
+- reactivating an inactive organization membership if that makes the user effective-active.
 
-Disabling a user releases capacity.
+Disabling a user or membership releases capacity.
 
-User Management must not depend directly on Licensing infrastructure.
+User Management must not depend directly on:
 
-Instead, a small policy/application boundary mediates the dependency.
+- JWS;
+- cryptographic libraries;
+- license persistence entities;
+- `LicenseVerifier`.
+
+Instead, a small application policy boundary mediates the dependency.
 
 Conceptually:
 
 ```java
 public interface UserCapacityPolicy {
-    void requireCapacityForNewActiveUser(UUID organizationId);
+    void requireCapacityForAdditionalActiveUser(UUID organizationId);
 }
 ```
 
-The exact method name may evolve to support both creation and reactivation, but the boundary must express capacity rather than expose Licensing infrastructure.
+The exact method shape may evolve, but the boundary must express capacity rather than expose Licensing infrastructure.
 
-### Unlicensed behavior
+The Licensing implementation enforces the current effective `maxUsers` behind this boundary.
 
-Because the basic Platform Core remains usable without a license, the absence of an activated license does not impose a user limit in MVP 0.1 unless a later product decision explicitly defines an unlicensed capacity.
+---
+
+## Behavior When License Is Not Active
+
+Because license validity is itself a general Platform Core condition, an expired or invalid license must not silently behave like an unrestricted installation.
 
 Therefore:
 
 ```text
-UNLICENSED + no maxUsers entitlement
-    -> Core user management remains available
+ACTIVE
+-> normal licensed operation
+-> maxUsers enforced
+-> licenseFeatures available
 
-ACTIVE license + maxUsers = N
-    -> active-user capacity is N
+UNLICENSED
+-> normal licensed operations unavailable
+-> activation/admin recovery paths remain available
+-> module licenseFeatures are not granted
+
+EXPIRED
+-> normal licensed operations unavailable
+-> activation/admin recovery paths remain available
+-> module licenseFeatures are not granted
+
+INVALID
+-> treated as not effectively licensed
+-> activation/admin recovery paths remain available
+-> module licenseFeatures are not granted
 ```
 
-An expired or invalid previously activated license must not silently continue granting its licensed capacity or module entitlements.
+Existing data is never deleted because of licensing state.
 
-## Expired or Invalid License Behavior
+Replacing an invalid/expired license with a valid license restores normal operation.
 
-An expired or invalid license does not disable the Platform Core.
+---
 
-Core functionality remains available.
+## License Features
 
-However:
+The signed Platform Core license contains an extensible array:
 
-- licensed module feature entitlements are not granted;
-- licensed capacity entitlements are not granted from the expired/invalid license.
+`licenseFeatures`
 
-Existing Core data is never deleted or made inaccessible merely because a license expires.
+Each entry is an opaque keyword string.
 
-Licensing must not perform destructive behavior.
+Examples:
 
-Future modules may choose to become unavailable or read-only when their entitlement is absent, but that behavior belongs to module/use-case policy and must not be hardcoded into the generic `Project` aggregate.
+```text
+module.video-qc
+video-qc.hdr
+video-qc.imf
+video-qc.automated-qc
+
+module.photo-editor
+photo-editor.raw
+photo-editor.ai-filters
+
+module.text-editor
+text-editor.ai
+text-editor.collaboration
+```
+
+Keywords should be namespaced to reduce collisions.
+
+A root feature may represent entitlement to a module:
+
+```text
+module.video-qc
+```
+
+Additional features may represent capabilities inside that module:
+
+```text
+video-qc.hdr
+video-qc.imf
+```
+
+The Platform Core Licensing module:
+
+- verifies that the signed array is structurally valid;
+- exposes feature presence;
+- does not interpret module-specific meaning;
+- does not know whether the corresponding module is installed;
+- does not activate module behavior itself.
+
+Each module:
+
+- owns the names/keywords it understands;
+- owns constants for those keywords if desired;
+- queries the Core license feature provider;
+- decides how to enforce its own licensed capabilities.
+
+The Platform Core must not define a global enum containing all current/future module features.
+
+For example, this is deliberately avoided:
+
+```java
+enum LicenseFeature {
+    VIDEO_QC,
+    VIDEO_QC_HDR,
+    PHOTO_EDITOR,
+    PHOTO_AI
+}
+```
+
+because adding a module would then require modifying the Platform Core.
+
+---
+
+## License Feature Boundary
+
+The Core exposes a small application-facing abstraction.
+
+Conceptually:
+
+```java
+public interface LicenseFeatureProvider {
+    boolean hasFeature(String feature);
+}
+```
+
+A module may use it as:
+
+```java
+if (!licenseFeatures.hasFeature("module.video-qc")) {
+    // module not licensed
+}
+```
+
+and:
+
+```java
+if (licenseFeatures.hasFeature("video-qc.hdr")) {
+    // HDR capability licensed
+}
+```
+
+A module does not need to know:
+
+- how JWS works;
+- which public key verified the license;
+- where the signed license is stored;
+- how expiration is calculated.
+
+Dependency direction remains:
+
+```text
+Future Module
+      |
+      v
+LicenseFeatureProvider
+      |
+      v
+Core Licensing
+```
+
+Core Licensing does not depend on the future module.
+
+---
+
+## Feature Availability Requires an Active License
+
+Feature keywords are only effective when the general license is `ACTIVE`.
+
+Conceptually:
+
+```text
+license contains "video-qc.hdr"
++
+effective license status == ACTIVE
+    -> hasFeature("video-qc.hdr") == true
+```
+
+If the effective status is:
+
+- `UNLICENSED`;
+- `EXPIRED`;
+- `INVALID`;
+
+then:
+
+```text
+hasFeature("video-qc.hdr") == false
+```
+
+even if an old or invalid signed payload contains that keyword.
+
+This keeps module logic simple and prevents expired licenses from continuing to grant module capabilities.
+
+---
+
+## Module Installation and Feature Presence
+
+Module installation and module licensing are independent concepts.
+
+### Installed and licensed
+
+```text
+Video QC installed
++
+license contains "module.video-qc"
+-> module may be enabled
+```
+
+### Installed but not licensed
+
+```text
+Video QC installed
++
+license does not contain "module.video-qc"
+-> module is not licensed
+```
+
+### Licensed but not installed
+
+```text
+license contains "module.video-qc"
++
+Video QC not installed
+-> no effect
+```
+
+The Platform Core does not treat unused feature keywords as errors.
+
+---
+
+## Module-Specific Licensing Responsibility
+
+Although feature keywords are carried by the general Platform Core license, the semantics of module-specific features belong to the module.
+
+For example:
+
+```text
+video-qc.hdr
+```
+
+is merely an opaque string to Core Licensing.
+
+Only the Video QC module determines:
+
+- what HDR means;
+- which use cases require it;
+- which UI elements depend on it;
+- whether lack of the feature disables, hides, or limits a particular capability.
+
+This keeps domain-specific licensing outside the generic Project and Platform Core domains.
+
+The generic `Project` aggregate must never contain module license state.
+
+---
 
 ## Installation Limits
 
-A per-license `maxInstallations` value is not enforced by the offline local runtime in MVP 0.1.
+`maxInstallations` is not part of local enforcement in MVP 0.1.
 
 A signed license is already bound to one `Installation.id`.
 
@@ -464,6 +776,10 @@ An isolated installation cannot reliably know how many other installations have 
 A global installation-count limit requires a central licensing/activation authority.
 
 If such a service is introduced later, installation-count licensing requires a separate decision or extension to this ADR.
+
+MVP 0.1 does not pretend to enforce a global installation count locally.
+
+---
 
 ## Failure Behavior
 
@@ -475,8 +791,13 @@ Activation distinguishes stable application error categories such as:
 - `LICENSE_VERSION_UNSUPPORTED`
 - `LICENSE_INSTALLATION_MISMATCH`
 - `LICENSE_EXPIRED`
+- `LICENSE_USER_LIMIT_EXCEEDED`
+
+Exact public error exposure may be reduced where security considerations make a more generic error preferable.
 
 Cryptographic or internal exception details must not be exposed through the HTTP API.
+
+---
 
 ## Security Rules
 
@@ -489,16 +810,24 @@ The implementation must:
 - never log private signing material;
 - avoid logging complete signed licenses by default;
 - never accept unsigned license JSON as an activated license;
-- never allow the frontend to determine effective entitlements independently;
-- enforce entitlements and capacity policies on the backend.
+- never allow the frontend to determine effective license status independently;
+- never allow the frontend to authoritatively enforce `maxUsers`;
+- never allow the frontend to authoritatively grant module features;
+- enforce general license validity on the backend;
+- enforce user capacity on the backend;
+- expose only verified effective feature availability.
 
-Frontend feature visibility is UX only.
+Frontend visibility/disablement is UX only.
 
 Backend application policy is authoritative.
+
+---
 
 ## Offline Operation
 
 Once activated, a valid license can be verified locally without contacting a remote service.
+
+This is an intentional property of the local deployment model.
 
 MVP 0.1 does not implement:
 
@@ -512,6 +841,8 @@ MVP 0.1 does not implement:
 A cryptographically valid previously issued offline license cannot be remotely revoked without introducing an online or distributed revocation mechanism.
 
 This limitation is accepted.
+
+---
 
 ## License Issuer
 
@@ -530,34 +861,51 @@ It may be a CLI or service capable of:
 - assigning installation IDs;
 - assigning license type;
 - assigning expiration;
-- assigning feature identifiers;
-- assigning limits.
+- assigning `maxUsers`;
+- assigning `licenseFeatures`.
 
 The issuer is not part of the normal Flexible Project Manager runtime trust boundary.
+
+---
 
 ## Relationship to Future Modules
 
 The Platform Core remains independent of future modules.
 
-A future module may depend on generic Projects and entitlement abstractions.
+A future module may depend on:
+
+- generic Projects;
+- `LicenseFeatureProvider`;
+- other stable Platform Core contracts.
 
 For example:
 
 ```text
 Video QC Module
-    ↓
-EntitlementProvider.hasFeature("module.video-qc")
-    ↓
-CreateProjectUseCase
-    ↓
-generic Project.id
-    ↓
-Video QC module-specific state
+    |
+    +--> LicenseFeatureProvider.hasFeature("module.video-qc")
+    |
+    +--> LicenseFeatureProvider.hasFeature("video-qc.hdr")
+    |
+    +--> CreateProjectUseCase
+              |
+              v
+        generic Project.id
+              |
+              v
+        Video QC module-specific state
 ```
 
-The Platform Core and Licensing modules never depend on domain-specific project subclasses.
+The Platform Core and Licensing modules never depend on:
+
+- `VideoQcProject`;
+- `PhotoProject`;
+- `TextProject`;
+- equivalent domain-specific project subclasses.
 
 Composition remains preferred over inheritance.
+
+---
 
 ## Consequences
 
@@ -567,12 +915,14 @@ Composition remains preferred over inheritance.
 - no private signing key is distributed to customers;
 - licenses cannot be modified without invalidating the signature;
 - licenses are bound to stable Installation identity rather than hardware;
+- license duration is enforced as a general Platform Core condition;
+- maximum active users is enforced centrally;
+- module feature keywords can evolve without modifying the Platform Core;
+- unused licensed features do not affect installations that lack the corresponding module;
 - effective expiry requires no background database mutation;
 - key rotation is possible through `kid`;
-- future modules can consume generic feature entitlements;
-- Licensing remains independent of future application domains;
-- the basic Platform Core remains usable without a license;
-- historical disabled users do not unnecessarily consume licensed capacity.
+- modules remain responsible for their own feature semantics;
+- Licensing remains independent of future application domains.
 
 ### Negative
 
@@ -581,47 +931,76 @@ Composition remains preferred over inheritance.
 - global installation limits cannot be enforced by an isolated installation;
 - public verification keys must be maintained for old licenses during key rotation;
 - replacing an installation with a new `Installation.id` requires a newly issued license;
-- active-user capacity enforcement introduces a dependency from User Management to a generic capacity-policy boundary.
+- User Management needs a generic capacity-policy integration point;
+- modules must consistently enforce their own feature keywords.
 
 These trade-offs are accepted for the local-first MVP.
+
+---
 
 ## Alternatives Considered
 
 ### Symmetric HMAC license signatures
 
-Rejected because every installation capable of verifying an HMAC would also contain the secret capable of generating valid licenses.
+Rejected.
+
+Every installation capable of verifying an HMAC would also contain the secret capable of generating valid licenses.
 
 ### Unsigned JSON license files
 
-Rejected because they provide no authenticity or integrity guarantee.
+Rejected.
+
+They provide no authenticity or integrity guarantee.
 
 ### Hardware fingerprint binding
 
-Rejected because hardware identifiers are brittle across VMs, hardware replacement, operating systems, network changes, and backups.
+Rejected.
+
+Hardware identifiers are brittle across VMs, hardware replacement, operating systems, network changes, and backups.
 
 ### Mandatory online license server
 
-Rejected for MVP 0.1 because it conflicts with the local/offline-first deployment model.
+Rejected for MVP 0.1.
 
-### Blocking the entire Platform Core when unlicensed
+It conflicts with the local/offline-first deployment model.
 
-Rejected for MVP 0.1. Licensing controls optional modules and explicit commercial limits without making core administration unusable.
+### Treating an expired license as unrestricted/unlicensed operation
 
-### Licensing every Core capability as a feature
+Rejected.
 
-Rejected for MVP 0.1 because it would spread Licensing concerns throughout the basic Platform Core.
+License duration is a general Platform Core condition. Expiration must not remove the restrictions that existed while the license was valid.
 
 ### Counting all historical users against `maxUsers`
 
-Rejected. Disabled users do not consume an active licensed seat.
+Rejected.
+
+Disabled users and inactive memberships do not consume an active licensed user slot.
 
 ### Storing authoritative license claims as ordinary database columns
 
-Rejected. Mutable database state must not be able to change signed licensing claims.
+Rejected.
 
-### Project-specific or module-specific license models
+Mutable database state must not be able to change signed licensing claims.
 
-Rejected. Licensing must remain generic and independent of future modules.
+### Global enum of module features in Platform Core
+
+Rejected.
+
+Every new module or feature would require modifying the Platform Core and would create an unnecessary dependency from Core Licensing to domain-specific concepts.
+
+### Platform Core interpreting module-specific feature semantics
+
+Rejected.
+
+The Core verifies and exposes opaque feature keywords. Each module owns the meaning and enforcement of its own keywords.
+
+### Project-specific subclasses for licensed modules
+
+Rejected.
+
+Module licensing must not change the generic Project aggregate. Modules extend the platform by composition using `Project.id`.
+
+---
 
 ## Out of Scope
 
@@ -641,6 +1020,7 @@ ADR-0005 does not define:
 - module loading;
 - marketplace functionality;
 - cryptographic private-key infrastructure for the external issuer;
-- detailed UI behavior for every future licensed module.
+- exact module-specific license feature semantics;
+- exact UX for every future licensed module.
 
 These concerns require separate decisions if introduced.
