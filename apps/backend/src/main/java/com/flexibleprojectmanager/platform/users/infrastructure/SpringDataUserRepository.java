@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.flexibleprojectmanager.platform.users.domain.User;
+import com.flexibleprojectmanager.platform.users.domain.OrganizationMember;
 
 public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, UUID> {
     boolean existsByEmail(String email);
@@ -20,5 +21,10 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, U
 
     @Query("select u from UserJpaEntity u where u.id = :userId and exists (select m.id from OrganizationMemberJpaEntity m where m.userId = u.id and m.organizationId = :organizationId)")
     Optional<UserJpaEntity> findByOrganizationIdAndUserId(@Param("organizationId") UUID organizationId,
-                                                           @Param("userId") UUID userId);
+                                                            @Param("userId") UUID userId);
+
+    @Query("select count(u.id) from UserJpaEntity u where u.status = :userStatus and exists (select m.id from OrganizationMemberJpaEntity m where m.userId = u.id and m.organizationId = :organizationId and m.status = :memberStatus)")
+    long countEffectiveActiveUsers(@Param("organizationId") UUID organizationId,
+                                   @Param("userStatus") User.Status userStatus,
+                                   @Param("memberStatus") OrganizationMember.Status memberStatus);
 }

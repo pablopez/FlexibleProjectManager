@@ -26,16 +26,18 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
     private final UserRepository repository;
     private final PasswordHasher passwordHasher;
     private final Clock clock;
+    private final UserCapacityPolicy capacityPolicy;
 
     @Autowired
-    public UserManagementService(UserRepository repository, PasswordHasher passwordHasher) {
-        this(repository, passwordHasher, Clock.systemUTC());
+    public UserManagementService(UserRepository repository, PasswordHasher passwordHasher, UserCapacityPolicy capacityPolicy) {
+        this(repository, passwordHasher, Clock.systemUTC(), capacityPolicy);
     }
 
-    UserManagementService(UserRepository repository, PasswordHasher passwordHasher, Clock clock) {
+    UserManagementService(UserRepository repository, PasswordHasher passwordHasher, Clock clock, UserCapacityPolicy capacityPolicy) {
         this.repository = repository;
         this.passwordHasher = passwordHasher;
         this.clock = clock;
+        this.capacityPolicy = capacityPolicy;
     }
 
     @Override
@@ -66,6 +68,7 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
         validatePassword(command.password());
         Set<String> roles = validateRoles(command.roles());
         if (repository.existsByEmail(email)) throw new UserEmailAlreadyExistsException();
+        capacityPolicy.requireCapacityForAdditionalActiveUser(actor.organizationId());
         Instant now = Instant.now(clock);
         User user = User.create(UUID.randomUUID(), email, passwordHasher.hash(command.password()), displayName, now);
         return view(repository.create(user, actor.organizationId(), roles));
@@ -89,6 +92,10 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
                 && existing.roles().contains("ADMIN")
                 && !repository.hasEffectiveActiveAdmin(actor.organizationId(), userId)) {
             throw new LastActiveAdminRequiredException();
+        }
+        if (status == User.Status.ACTIVE && existing.user().status() == User.Status.DISABLED
+                && existing.membershipStatus() == OrganizationMember.Status.ACTIVE) {
+            capacityPolicy.requireCapacityForAdditionalActiveUser(actor.organizationId());
         }
         return view(repository.update(actor.organizationId(), userId, displayName, status, Instant.now(clock)));
     }

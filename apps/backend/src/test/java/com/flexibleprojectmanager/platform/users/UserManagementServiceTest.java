@@ -22,7 +22,7 @@ class UserManagementServiceTest {
         UUID organizationId = UUID.randomUUID();
         UUID actorId = UUID.randomUUID();
         CapturingRepository repository = new CapturingRepository();
-        UserManagementService service = new UserManagementService(repository, raw -> "bcrypt-hash");
+        UserManagementService service = new UserManagementService(repository, raw -> "bcrypt-hash", id -> { });
 
         var result = service.create(new CurrentActor(actorId, organizationId, UUID.randomUUID(), List.of("users:create")),
                 new CreateUserCommand(" New@Example.com ", " New User ", "password123", List.of("USER")));
@@ -42,6 +42,7 @@ class UserManagementServiceTest {
         @Override public PageResult findAllByOrganizationId(UUID id, int page, int size, User.Status status) { return new PageResult(List.of(), 0); }
         @Override public java.util.Optional<UserRecord> findByOrganizationIdAndUserId(UUID id, UUID userId) { return java.util.Optional.empty(); }
         @Override public boolean existsByEmail(String email) { return false; }
+        @Override public long countEffectiveActiveUsers(UUID id) { return 0; }
         @Override public UserRecord create(User user, UUID id, Set<String> roles) { organizationId = id; created = user; createdRoles = roles; return new UserRecord(user, roles, OrganizationMember.Status.ACTIVE); }
         @Override public UserRecord update(UUID id, UUID userId, String displayName, User.Status status, Instant updatedAt) { throw new UnsupportedOperationException(); }
         @Override public UserRecord replaceRoles(UUID id, UUID userId, Set<String> roles) { throw new UnsupportedOperationException(); }

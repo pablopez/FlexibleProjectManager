@@ -15,11 +15,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.context.annotation.Import;
+
+import com.flexibleprojectmanager.platform.licensing.LicensingTestConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(LicensingTestConfiguration.class)
 class UserManagementIntegrationTest {
     private static final Path database = Path.of(System.getProperty("java.io.tmpdir"), "fpm-users-" + UUID.randomUUID(), "test.sqlite");
 

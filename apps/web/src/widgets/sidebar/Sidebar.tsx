@@ -7,7 +7,7 @@ export function Sidebar() {
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
-  const items = visibleNavigation(user?.roles ?? [])
+  const items = visibleNavigation(user?.roles ?? [], user?.permissions ?? [])
 
   async function signOut() {
     try {

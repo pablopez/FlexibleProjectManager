@@ -43,6 +43,11 @@ public class JpaUserRepositoryAdapter implements UserRepository {
     @Override public boolean existsByEmail(String email) { return users.existsByEmail(email); }
 
     @Override
+    public long countEffectiveActiveUsers(UUID organizationId) {
+        return users.countEffectiveActiveUsers(organizationId, User.Status.ACTIVE, OrganizationMember.Status.ACTIVE);
+    }
+
+    @Override
     public UserRecord create(User user, UUID organizationId, Set<String> roleCodes) {
         UserJpaEntity entity = UserJpaEntity.from(user);
         try {

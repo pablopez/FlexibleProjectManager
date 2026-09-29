@@ -3,7 +3,7 @@ import { isNavigationItemActive, visibleNavigation } from './navigation'
 
 describe('shell navigation', () => {
   it('shows all shell entries to administrators', () => {
-    expect(visibleNavigation(['ADMIN']).map((item) => item.label)).toEqual([
+    expect(visibleNavigation(['ADMIN'], ['license:read']).map((item) => item.label)).toEqual([
       'Dashboard', 'Projects', 'Users', 'Organization', 'License', 'Settings',
     ])
   })
@@ -11,6 +11,10 @@ describe('shell navigation', () => {
   it('hides administrative entries from regular roles', () => {
     expect(visibleNavigation(['USER']).map((item) => item.label)).toEqual(['Dashboard', 'Projects', 'Settings'])
     expect(visibleNavigation(['VIEWER']).map((item) => item.label)).toEqual(['Dashboard', 'Projects', 'Settings'])
+  })
+
+  it('shows licensing from permission rather than role name', () => {
+    expect(visibleNavigation(['USER'], ['license:read']).map((item) => item.label)).toContain('License')
   })
 
   it('marks the exact route and nested route as active', () => {

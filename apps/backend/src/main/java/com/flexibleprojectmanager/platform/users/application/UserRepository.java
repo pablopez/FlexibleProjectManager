@@ -13,6 +13,7 @@ public interface UserRepository {
     PageResult findAllByOrganizationId(UUID organizationId, int page, int size, User.Status status);
     Optional<UserRecord> findByOrganizationIdAndUserId(UUID organizationId, UUID userId);
     boolean existsByEmail(String email);
+    long countEffectiveActiveUsers(UUID organizationId);
     UserRecord create(User user, UUID organizationId, Set<String> roles);
     UserRecord update(UUID organizationId, UUID userId, String displayName, User.Status status, Instant updatedAt);
     UserRecord replaceRoles(UUID organizationId, UUID userId, Set<String> roles);
