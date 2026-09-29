@@ -78,7 +78,10 @@ UNLICENSED
 
 Represents authorization to use the product.
 
-A license belongs to an organization and may optionally be restricted to an installation.
+A license is a signed authorization artifact bound to exactly one installation.
+The installation is identified by the immutable server-controlled
+`Installation.id`. Organization identity is derived through the current
+installation relationship and is not an independently signed license claim.
 
 Main attributes:
 
@@ -86,12 +89,12 @@ Main attributes:
 id
 organizationId
 installationId
-licenseKey
+signedLicense
 type
-status
 issuedAt
 expiresAt
-signature
+maxUsers
+licenseFeatures
 ```
 
 Types:
@@ -106,26 +109,28 @@ DEVELOPMENT
 Status:
 
 ```text
+UNLICENSED
 ACTIVE
 EXPIRED
-REVOKED
 INVALID
 ```
 
-A license may provide features and limits.
+A valid signed license always contains a non-null `maxUsers` value. Effective
+entitlements expose opaque `licenseFeatures` keywords only while the license is
+ACTIVE.
 
-Example features:
+Example licenseFeatures:
 
 ```text
-projects
-future-module
+module.video-qc
+video-qc.hdr
+video-qc.imf
 ```
 
-Example limits:
+Example limit:
 
 ```text
 maxUsers
-maxInstallations
 ```
 
 ## User

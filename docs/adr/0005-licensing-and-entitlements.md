@@ -124,6 +124,10 @@ The payload must not be trusted before successful signature verification.
 
 `maxUsers` is a general Platform Core license condition.
 
+`maxUsers` is mandatory for every structurally valid signed license. It is an
+integer with a minimum value of 1 and is never null. There is no unlimited
+`maxUsers` form in MVP 0.1.
+
 `licenseFeatures` is an extensible array of opaque keyword identifiers.
 
 ---
@@ -386,8 +390,7 @@ Initial effective statuses are:
 - `UNLICENSED`
 - `ACTIVE`
 - `EXPIRED`
-
-`INVALID` may be used internally or diagnostically when persisted license material cannot be verified.
+- `INVALID`
 
 Conceptually:
 
@@ -411,6 +414,13 @@ No scheduled database mutation is required to move a license from `ACTIVE` to `E
 
 Effective status is calculated from verified signed data and the current clock.
 
+The REST API maps an internally `UNLICENSED` installation with no installed
+license to `404 Not Found` for `GET /api/v1/license`; `UNLICENSED` does not need
+to be represented by a successful `LicenseResponse`. If persisted license
+material is unverifiable, the REST response may report `INVALID`, but
+claim-derived fields must be absent or null and must never expose unverified
+payload data.
+
 If the existing `Installation.status` model contains a value such as `UNLICENSED`, it must not be treated as the authoritative licensing decision.
 
 Effective licensing status comes from the verified license state defined by this ADR.
@@ -422,6 +432,10 @@ Effective licensing status comes from the verified license state defined by this
 License validity is a general Platform Core condition.
 
 Normal protected application operations require an effective `ACTIVE` license.
+
+When the effective state is `UNLICENSED`, `EXPIRED` or `INVALID`, the backend
+returns HTTP 403 with the shared error code `LICENSE_NOT_ACTIVE`. HTTP 402 is
+not used.
 
 The exact technical enforcement mechanism should be centralized as much as possible and must not require every use case to understand JWS, cryptography, or persistence details.
 
@@ -438,6 +452,32 @@ The application must not delete or mutate user/project data merely because a lic
 Existing data remains persisted.
 
 The exact read-only/degraded UX may evolve, but the backend remains authoritative about which operations require an active license.
+
+The following recovery endpoints remain available without an active license,
+subject to their existing authentication and permission requirements:
+
+```text
+GET  /api/v1/system/health
+GET  /api/v1/setup/status
+POST /api/v1/setup/initialize
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+GET  /api/v1/installation
+GET  /api/v1/license
+POST /api/v1/license/activate
+POST /api/v1/license/deactivate
+GET  /api/v1/license/entitlements
+```
+
+License reads require `license:read`; activation and deactivation require
+`license:manage`.
+
+Deactivation removes the currently installed signed-license artifact. It is not
+cryptographic or remote revocation. It produces internal state `UNLICENSED`,
+causes `GET /api/v1/license` to return 404, blocks normal licensed operations,
+and leaves users, projects, organizations and other business data unchanged.
 
 ---
 
@@ -491,6 +531,11 @@ Capacity must be checked when an operation can increase the number of effective 
 - creating a new user that starts as `ACTIVE`;
 - reactivating a `DISABLED` user;
 - reactivating an inactive organization membership if that makes the user effective-active.
+
+Activation must also reject a structurally valid candidate when the current
+effective active-user count is greater than the candidate `maxUsers`. This
+returns HTTP 409 with `LICENSE_USER_LIMIT_EXCEEDED`; a failed candidate must
+leave the currently installed valid license untouched.
 
 Disabling a user or membership releases capacity.
 
@@ -767,7 +812,8 @@ The generic `Project` aggregate must never contain module license state.
 
 ## Installation Limits
 
-`maxInstallations` is not part of local enforcement in MVP 0.1.
+`maxInstallations` is not part of MVP 0.1 licensing and is not exposed by the
+licensing API. It is not replaced by another installation-count mechanism.
 
 A signed license is already bound to one `Installation.id`.
 

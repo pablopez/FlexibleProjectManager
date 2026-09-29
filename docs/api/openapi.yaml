@@ -283,7 +283,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      description: Returns the currently installed and validated license. Returns 404 when no license is installed.
+      description: Returns the currently installed license. Returns 404 when no license is installed; the internal UNLICENSED
+        state is represented by this 404 response. License claims are returned only when verified. An INVALID persisted artifact
+        may return status INVALID with claim-derived fields absent or null.
   /license/activate:
     post:
       tags:
@@ -314,7 +316,12 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
       description: Validates and activates a compact JWS license signed with Ed25519 (alg=EdDSA). The backend validates signature,
-        organization binding, optional installation binding, validity dates and replacement rules before activation.
+        the mandatory binding to exactly one Installation.id, validity dates, maxUsers capacity and replacement rules before
+        activation. Organization identity is derived server-side from the current installation. A failed candidate activation
+        leaves the currently installed valid license untouched. Activation failures may use LICENSE_INVALID,
+        LICENSE_SIGNATURE_INVALID, LICENSE_KEY_UNKNOWN, LICENSE_VERSION_UNSUPPORTED, LICENSE_INSTALLATION_MISMATCH,
+        LICENSE_EXPIRED or LICENSE_USER_LIMIT_EXCEEDED. If the current effective active-user count exceeds candidate maxUsers,
+        the response is HTTP 409 with LICENSE_USER_LIMIT_EXCEEDED.
   /license/deactivate:
     post:
       tags:
@@ -332,8 +339,10 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      description: Removes/deactivates the currently installed license from this deployment. Existing application data remains
-        accessible according to product policy.
+      description: Removes the currently installed signed-license artifact. This is local deactivation, not cryptographic or
+        remote revocation. Effective state becomes UNLICENSED, GET /license returns 404, normal licensed operations are blocked,
+        recovery and activation remain available, and users, projects, organization and other business data are not mutated or
+        deleted.
   /license/entitlements:
     get:
       tags:
@@ -344,7 +353,7 @@ paths:
       - bearerAuth: []
       responses:
         '200':
-          description: Effective features and limits
+          description: Effective licenseFeatures and maxUsers
           content:
             application/json:
               schema:
@@ -353,7 +362,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-      description: Returns effective features and limits derived from the current license.
+      description: Returns effective entitlements, never raw or unverified claims. When the effective license is not ACTIVE,
+        maxUsers is null and licenseFeatures is empty.
   /users:
     get:
       tags:
@@ -888,11 +898,21 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
-      description: Forbidden
+      description: Forbidden. Normal authenticated operations also use HTTP 403 with code LICENSE_NOT_ACTIVE when the effective
+        license state is UNLICENSED, EXPIRED or INVALID. License recovery endpoints remain available subject to authentication
+        and permission requirements.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            licenseNotActive:
+              value:
+                code: LICENSE_NOT_ACTIVE
+                message: An active license is required for this operation.
+                status: 403
+                timestamp: '2026-09-29T12:00:00Z'
+                path: /api/v1/projects
     NotFound:
       description: Not found
       content:
@@ -900,7 +920,8 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
-      description: Conflict
+      description: Conflict. License activation uses code LICENSE_USER_LIMIT_EXCEEDED when the current effective active-user
+        count exceeds the candidate license maxUsers; the previously installed valid license remains untouched.
       content:
         application/json:
           schema:
@@ -1103,9 +1124,8 @@ components:
       enum:
       - ACTIVE
       - EXPIRED
-      - REVOKED
       - INVALID
-      description: Effective license validation status.
+      description: Effective license validation status. UNLICENSED is represented by 404 when no license is installed.
     LicenseType:
       type: string
       enum:
@@ -1118,73 +1138,72 @@ components:
       type: object
       properties:
         maxUsers:
-          type:
-          - integer
-          - 'null'
+          type: integer
           minimum: 1
-          description: Maximum number of active users allowed. Null means unlimited.
-        maxInstallations:
-          type:
-          - integer
-          - 'null'
-          minimum: 1
-          description: Maximum number of installations allowed. Null means unlimited.
+          description: Maximum number of effective active users. Required and non-null in a structurally valid signed license.
       required:
       - maxUsers
-      - maxInstallations
       additionalProperties: false
     LicenseResponse:
       type: object
       properties:
         licenseId:
-          type: string
-          format: uuid
-        organizationId:
-          type: string
-          format: uuid
-        installationId:
           type:
           - string
           - 'null'
           format: uuid
-          description: Optional binding to the canonical Installation.id UUID. This identifier is public and is not a licensing
-            secret. Null means the license is organization-scoped.
+          description: Verified signed license identifier. Null when a persisted artifact is INVALID.
+        organizationId:
+          type: string
+          format: uuid
+          description: Server-derived organization identity from the current Installation relationship; not a signed claim.
+        installationId:
+          type: string
+          format: uuid
+          description: Current canonical Installation.id. The signed license is always bound to exactly this installation.
         status:
           $ref: '#/components/schemas/LicenseStatus'
         type:
-          $ref: '#/components/schemas/LicenseType'
+          anyOf:
+          - $ref: '#/components/schemas/LicenseType'
+          - type: 'null'
+          description: Verified license type. Null when a persisted artifact is INVALID.
         issuedAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
+          description: Verified issued timestamp. Null when a persisted artifact is INVALID.
         expiresAt:
           type:
           - string
           - 'null'
           format: date-time
-          description: Required for expiring licenses. Null is allowed for perpetual licenses.
-        features:
-          type: array
-          uniqueItems: true
-          items:
-            type: string
-            pattern: ^[a-z][a-z0-9.-]*$
-          description: Server-defined feature codes enabled by the license.
+          description: Verified expiry. Required for TRIAL, SUBSCRIPTION and DEVELOPMENT; null for PERPETUAL or INVALID artifacts.
+        licenseFeatures:
+          anyOf:
+          - type: array
+            uniqueItems: true
+            items:
+              type: string
+              pattern: ^[a-z][a-z0-9.-]*$
+          - type: 'null'
+          description: Verified opaque feature keywords. Null may be returned when a persisted artifact is INVALID.
         limits:
-          $ref: '#/components/schemas/LicenseLimits'
+          anyOf:
+          - $ref: '#/components/schemas/LicenseLimits'
+          - type: 'null'
+          description: Verified license limits. Null when a persisted artifact is INVALID.
         signatureAlgorithm:
-          type: string
-          const: Ed25519
+          anyOf:
+          - type: string
+            const: Ed25519
+          - type: 'null'
           description: Cryptographic algorithm used to validate the signed license.
       required:
-      - licenseId
       - organizationId
+      - installationId
       - status
-      - type
-      - issuedAt
-      - expiresAt
-      - features
-      - limits
-      - signatureAlgorithm
       additionalProperties: false
     ActivateLicenseRequest:
       type: object
@@ -1200,16 +1219,22 @@ components:
     EntitlementsResponse:
       type: object
       properties:
-        features:
-          type: object
-          additionalProperties:
-            type: boolean
-          description: Effective feature availability after license validation.
-        limits:
-          $ref: '#/components/schemas/LicenseLimits'
+        maxUsers:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Effective maximum number of users, or null when the license is not ACTIVE.
+        licenseFeatures:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            pattern: ^[a-z][a-z0-9.-]*$
+          description: Effective opaque feature keywords. Empty when the license is not ACTIVE.
       required:
-      - features
-      - limits
+      - maxUsers
+      - licenseFeatures
       additionalProperties: false
     UserStatus:
       type: string
