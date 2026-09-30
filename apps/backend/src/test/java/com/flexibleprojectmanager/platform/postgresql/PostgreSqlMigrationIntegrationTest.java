@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -52,14 +53,36 @@ class PostgreSqlMigrationIntegrationTest {
                 .isEqualTo(1);
 
         mockMvc.perform(get("/api/v1/setup/status")).andExpect(status().isOk());
-        mockMvc.perform(post("/api/v1/setup/initialize")
+        MvcResult setupResult = mockMvc.perform(post("/api/v1/setup/initialize")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"organization":{"name":"Postgres Org"},"installation":{"name":"Postgres"},"administrator":{"email":"admin@postgres.test","displayName":"Admin","password":"password123"}}
                                 """))
-                .andExpect(status().isCreated());
+                .andReturn();
+
+        int setupStatus = setupResult.getResponse().getStatus();
+        if (setupStatus != 201) {
+            Throwable resolved = setupResult.getResolvedException();
+            Throwable deepest = deepestCause(resolved);
+            assertThat(setupStatus)
+                    .withFailMessage("PostgreSQL setup returned %d; response=%s; resolvedException=%s; deepestCause=%s: %s",
+                            setupStatus,
+                            setupResult.getResponse().getContentAsString(),
+                            resolved == null ? "none" : resolved.getClass().getName(),
+                            deepest == null ? "none" : deepest.getClass().getName(),
+                            deepest == null ? "none" : deepest.getMessage())
+                    .isEqualTo(201);
+        }
 
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM organizations", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class)).isEqualTo(1);
+    }
+
+    private static Throwable deepestCause(Throwable exception) {
+        Throwable deepest = exception;
+        while (deepest != null && deepest.getCause() != null) {
+            deepest = deepest.getCause();
+        }
+        return deepest;
     }
 }

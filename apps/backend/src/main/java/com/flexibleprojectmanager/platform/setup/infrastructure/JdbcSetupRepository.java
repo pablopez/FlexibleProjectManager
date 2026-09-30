@@ -2,8 +2,9 @@ package com.flexibleprojectmanager.platform.setup.infrastructure;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -77,6 +78,7 @@ public class JdbcSetupRepository implements SetupRepository {
     }
 
     private Object databaseValue(Object value) {
+        if (postgresql && value instanceof Instant instant) return instant.atOffset(ZoneOffset.UTC);
         if (postgresql) return value;
         if (value instanceof UUID || value instanceof Instant) return value.toString();
         return value;
