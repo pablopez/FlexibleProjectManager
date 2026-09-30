@@ -226,6 +226,11 @@ license:manage
 audit:read
 ```
 
+For MVP 0.1, `audit:read` is assigned to `ADMIN` only. `USER` and `VIEWER` do
+not receive this permission. Audit recording is internal application behavior
+and does not use user-facing `audit:create`, `audit:update` or `audit:delete`
+permissions; those permissions do not exist.
+
 Future modules may register additional permissions.
 
 ## RefreshToken
@@ -314,7 +319,14 @@ For MVP 0.1, organization settings must use explicitly supported keys rather tha
 
 ## AuditEntry
 
-Represents an immutable record of a relevant action.
+Represents an immutable, append-only record of a relevant Platform Core state
+change. Audit history is scoped to an organization and is read through
+`GET /api/v1/audit`. The organization scope is derived from
+`CurrentActor.organizationId`; clients cannot select an organization ID.
+
+Audit entries are created internally only after a successful mutation. There is
+no public audit write API, and normal application behavior provides no update or
+delete operation.
 
 Main attributes:
 
@@ -329,26 +341,143 @@ metadata
 createdAt
 ```
 
-Examples:
+`actorUserId` may be nullable for possible future system events, but every Slice
+9 event has an actor derived from `CurrentActor.userId()`. `resourceId` is
+nullable. Current mutations record stable UUID references where available:
 
 ```text
-LOGIN_SUCCESS
-LOGIN_FAILED
+PROJECT_*             -> project ID
+USER_*                -> target user ID
+ORGANIZATION_UPDATED  -> organization ID
+INSTALLATION_UPDATED  -> installation ID
+USER_PREFERENCES_UPDATED -> actor user ID
+LICENSE_*             -> verified license ID when available
+```
 
-USER_CREATED
-USER_UPDATED
-USER_DISABLED
+An invalid or unverifiable license artifact must never supply a resource ID;
+license deactivation may therefore have a null `resourceId`.
 
+Actions and resource types are stable, uppercase machine-readable strings. They
+use a format comparable to `^[A-Z][A-Z0-9_]*$`, with a reasonable bounded
+length, but are intentionally extensible strings rather than closed global
+enums. They are never localized in persistence or API responses.
+
+Initial Slice 9 actions:
+
+```text
 PROJECT_CREATED
 PROJECT_UPDATED
 PROJECT_ARCHIVED
 PROJECT_RESTORED
 
+USER_CREATED
+USER_UPDATED
+USER_DISABLED
+USER_REACTIVATED
+USER_ROLES_CHANGED
+
+ORGANIZATION_UPDATED
+INSTALLATION_UPDATED
+
 LICENSE_ACTIVATED
+LICENSE_REPLACED
 LICENSE_DEACTIVATED
+
+USER_PREFERENCES_UPDATED
 ```
 
-Audit metadata should remain bounded and structured. It must not be used as an unrestricted storage mechanism for arbitrary application data.
+Initial resource types:
+
+```text
+PROJECT
+USER
+ORGANIZATION
+INSTALLATION
+LICENSE
+USER_PREFERENCES
+```
+
+Authentication events are explicitly deferred from Slice 9:
+
+```text
+LOGIN_SUCCESS
+LOGIN_FAILED
+LOGOUT
+REFRESH_SUCCESS
+refresh-token events
+```
+
+Audit metadata is optional and must be explicitly constructed, minimal,
+non-secret, non-authoritative and bounded. Slice 9 supports only controlled
+metadata such as:
+
+```json
+{
+  "changedFields": ["displayName", "status"]
+}
+```
+
+`changedFields` contains unique field names. Commands, request DTOs, HTTP
+request bodies and entities must never be serialized into audit metadata.
+
+Audit metadata must never contain:
+
+```text
+passwords
+password hashes
+JWT access tokens
+refresh tokens
+refresh-token hashes
+cookies
+Authorization headers
+full signed license JWS values
+private keys
+signing key material
+cryptographic secrets
+```
+
+Complete emails, display names, project descriptions and organization names
+should also not be copied into metadata. Prefer IDs and changed field names
+over value snapshots.
+
+The REST response may contain the actor's `id` and current `displayName` for
+presentation. The display name is not an authoritative historical snapshot and
+must not require persisting user payloads in the audit record.
+
+Audit persistence retains raw UUID identifiers as historical references. It
+must not require cascading foreign keys to users, projects, installations or
+organizations that could delete historical audit entries when resources change
+or are removed. No retention policy exists in MVP; audit events are retained
+indefinitely.
+
+Audit recording participates in the same transaction as the originating
+business mutation:
+
+```text
+business mutation succeeds
++ audit append succeeds
+    -> commit
+
+audit append fails
+    -> business mutation rolls back
+```
+
+Audit reads require `audit:read` and remain subject to normal licensing
+enforcement. `GET /api/v1/audit` is not a licensing recovery endpoint, so an
+inactive license produces `403 LICENSE_NOT_ACTIVE`. Internal audit recording
+does not perform a separate licensing check because the originating business
+operation has already passed central licensing enforcement.
+
+Examples:
+
+```text
+PROJECT_CREATED
+USER_CREATED
+```
+
+Audit history is intended to provide timestamp, actor, action, resource type,
+resource ID and controlled metadata to later frontend views. The backend stores
+machine action codes only; localization belongs to the frontend.
 
 ## ApplicationEvent
 

@@ -728,30 +728,56 @@ paths:
       tags:
       - Audit
       summary: Query audit log
+      description: >-
+        Returns immutable, append-only audit history for the organization of the
+        authenticated actor. The effective permission required is audit:read.
+        Organization scope is derived server-side from CurrentActor.organizationId
+        and cannot be selected or broadened by the client. Audit entries are
+        created internally by successful Platform Core mutations; there are no
+        REST create, update or delete operations. Results are ordered by
+        createdAt descending and id ascending. The from bound and to bound are
+        inclusive; when both are supplied, from must be less than or equal to to.
+        The endpoint is subject to normal licensing enforcement and is not a
+        licensing recovery endpoint.
       operationId: listAuditEntries
       security:
       - bearerAuth: []
       parameters:
       - name: userId
         in: query
+        description: Public API name for the actor user ID filter. It is always applied within the current actor's organization.
         schema:
           type: string
           format: uuid
       - name: action
         in: query
+        description: Stable uppercase machine-readable audit action code.
         schema:
           type: string
+          maxLength: 64
+          pattern: '^[A-Z][A-Z0-9_]*$'
       - name: resourceType
         in: query
+        description: Stable uppercase machine-readable resource type.
         schema:
           type: string
+          maxLength: 64
+          pattern: '^[A-Z][A-Z0-9_]*$'
+      - name: resourceId
+        in: query
+        description: UUID of the audited resource, when the event has a stable resource identifier.
+        schema:
+          type: string
+          format: uuid
       - name: from
         in: query
+        description: Inclusive lower bound for createdAt. If to is also supplied, from must be less than or equal to to.
         schema:
           type: string
           format: date-time
       - name: to
         in: query
+        description: Inclusive upper bound for createdAt. If from is also supplied, from must be less than or equal to to.
         schema:
           type: string
           format: date-time
@@ -764,6 +790,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuditListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1464,6 +1492,7 @@ components:
           maxLength: 2000
     AuditActor:
       type: object
+      description: Presentation information for the actor. The display name is obtained from current user data and is not an authoritative historical snapshot.
       required:
       - id
       - displayName
@@ -1475,6 +1504,7 @@ components:
           type: string
     AuditEntryResponse:
       type: object
+      description: Immutable audit history entry. The organization scope is internal and is not client-selectable or returned here.
       required:
       - id
       - action
@@ -1490,21 +1520,55 @@ components:
           - type: 'null'
         action:
           type: string
+          maxLength: 64
+          pattern: '^[A-Z][A-Z0-9_]*$'
+          description: >-
+            Stable machine-readable action code; it is not localized and is an
+            extensible string rather than a closed enum. Initial Slice 9 values
+            are PROJECT_CREATED, PROJECT_UPDATED, PROJECT_ARCHIVED,
+            PROJECT_RESTORED, USER_CREATED, USER_UPDATED, USER_DISABLED,
+            USER_REACTIVATED, USER_ROLES_CHANGED, ORGANIZATION_UPDATED,
+            INSTALLATION_UPDATED, LICENSE_ACTIVATED, LICENSE_REPLACED,
+            LICENSE_DEACTIVATED and USER_PREFERENCES_UPDATED.
         resourceType:
           type: string
+          maxLength: 64
+          pattern: '^[A-Z][A-Z0-9_]*$'
+          description: >-
+            Stable machine-readable resource type; it is an extensible string
+            rather than a closed enum. Initial Core values are PROJECT, USER,
+            ORGANIZATION, INSTALLATION, LICENSE and USER_PREFERENCES. Future
+            modules may add resource types without a schema enum migration.
         resourceId:
           type:
           - string
           - 'null'
           format: uuid
+          description: Historical UUID reference when the audited resource has a trustworthy stable identifier.
         metadata:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
+          anyOf:
+          - $ref: '#/components/schemas/AuditMetadata'
+          - type: 'null'
+          description: Optional, explicitly constructed, bounded, non-secret metadata. It is not authoritative business state.
         createdAt:
           type: string
           format: date-time
+          description: UTC creation time. Results are ordered descending by this field, with id ascending as the tie-breaker.
+      additionalProperties: false
+    AuditMetadata:
+      type: object
+      description: Controlled audit metadata. Slice 9 supports only changed field names; request bodies, commands and entities are never serialized.
+      properties:
+        changedFields:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          maxItems: 32
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+      additionalProperties: false
     AuditListResponse:
       type: object
       properties:
