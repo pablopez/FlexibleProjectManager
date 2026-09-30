@@ -483,7 +483,8 @@ machine action codes only; localization belongs to the frontend.
 
 Represents something that happened inside the application.
 
-Application events may be consumed by internal components and exposed to connected clients.
+Application events may be introduced by a future slice; MVP 0.1 does not expose
+an event stream.
 
 Conceptual structure:
 
@@ -514,7 +515,7 @@ LICENSE_ACTIVATED
 LICENSE_DEACTIVATED
 ```
 
-Server-to-client event delivery for MVP 0.1 will use Server-Sent Events.
+Server-to-client event delivery is deferred beyond MVP 0.1.
 
 Persistent user notifications are outside the scope of MVP 0.1.
 

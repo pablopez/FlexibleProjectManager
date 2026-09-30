@@ -3,6 +3,9 @@ spring:
     name: flexible-project-manager
   profiles:
     default: local
+    group:
+      prod:
+        - postgresql
   jpa:
     hibernate:
       ddl-auto: none

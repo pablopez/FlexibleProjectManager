@@ -36,6 +36,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/api/v1/system/health",
+                                "/api/v1/system/readiness",
+                                "/api/v1/system/liveness",
                                 "/api/v1/setup/status",
                                 "/api/v1/setup/initialize",
                                 "/api/v1/auth/login",

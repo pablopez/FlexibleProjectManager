@@ -14,7 +14,7 @@ The authentication design must support:
 - short-lived authenticated API sessions;
 - logout and session revocation;
 - page reloads without forcing the user to log in again;
-- future Server-Sent Events authenticated with `Authorization: Bearer`;
+- future authenticated streaming without changing the token model;
 - local-first deployment today;
 - future cloud deployment without redesigning the authentication model.
 
@@ -266,21 +266,11 @@ VIEWER
 
 Permissions are enforced server-side.
 
-## SSE Authentication
+## Future streaming authentication
 
-Server-Sent Events use the same short-lived access token.
-
-The frontend will not use the browser-native `EventSource` API because it does not allow the application to reliably attach a custom `Authorization` header.
-
-The frontend will use a fetch-based SSE client:
-
-```http
-GET /api/v1/events
-Authorization: Bearer <access-token>
-Accept: text/event-stream
-```
-
-Refresh-token cookies must not be used as the authentication mechanism for the SSE stream.
+MVP 0.1 does not expose an event stream. If a future slice adds streaming, it
+must use the short-lived bearer access token rather than the refresh cookie and
+must receive a separate security review.
 
 ## CSRF and Cross-Origin Rules
 
@@ -389,7 +379,7 @@ Raw refresh tokens must never be persisted.
 - sessions survive page reloads through refresh;
 - sessions can be revoked server-side;
 - refresh-token reuse can be detected or restricted;
-- SSE can reuse Bearer authentication;
+- future streaming can reuse Bearer authentication;
 - architecture remains suitable for local and future cloud deployments.
 
 ### Negative

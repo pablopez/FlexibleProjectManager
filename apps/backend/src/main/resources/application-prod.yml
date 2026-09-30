@@ -1,0 +1,11 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  security:
+    refresh-cookie-secure: true
+  licensing:
+    trusted-keys:
+      ${FPM_LICENSE_KEY_ID:required}: ${FPM_LICENSE_PUBLIC_KEY:}

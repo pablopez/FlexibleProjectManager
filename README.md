@@ -2,7 +2,7 @@
 
 Flexible Project Manager is a modular project management platform designed to provide a reusable application core for future domain-specific modules.
 
-The first milestone focuses exclusively on the platform itself: organizations, installations, licensing, authentication, users, roles, projects, settings, auditing and real-time application events.
+The first milestone focuses exclusively on the platform itself: organizations, installations, licensing, authentication, users, roles, projects, settings and auditing.
 
 Domain-specific functionality will be added later as independent modules.
 
@@ -83,12 +83,23 @@ The first MVP will provide:
 - License information and validation
 - User and organization settings
 - Audit log
-- Server-Sent Events
 - Initial React GUI
 
 Projects are intentionally generic at this stage.
 
 No domain-specific functionality belongs to the Platform Core.
+
+## Quick start
+
+```text
+Backend (SQLite): cd apps/backend && mvn spring-boot:run
+Frontend:         cd apps/web && pnpm install && pnpm dev
+Tests:            cd apps/backend && mvn test
+                  cd apps/web && pnpm test -- --run
+Compose:          docker compose up --build
+```
+
+Deployment and release operations are documented in [`docs/deployment.md`](docs/deployment.md).
 
 ## Out of Scope for MVP 0.1
 

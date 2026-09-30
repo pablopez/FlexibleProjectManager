@@ -13,7 +13,7 @@ The initial architecture follows a modular monolith approach.
 ```text
 React Web Application
         |
-        | REST / SSE
+        | REST
         v
 Spring Boot Platform Core
         |
@@ -26,7 +26,6 @@ Spring Boot Platform Core
         +---- Projects
         +---- Settings
         +---- Audit
-        +---- Events
         |
         v
 Persistence
@@ -64,7 +63,6 @@ platform
 ├── projects
 ├── settings
 ├── audit
-└── events
 ```
 
 Future domain-specific modules will live outside the Platform Core.
@@ -272,23 +270,8 @@ The domain and API contracts must remain independent from the database implement
 
 ## 11. Application Events
 
-The backend may emit application events such as:
-
-```text
-PROJECT_CREATED
-PROJECT_UPDATED
-PROJECT_ARCHIVED
-
-USER_CREATED
-USER_UPDATED
-
-LICENSE_ACTIVATED
-LICENSE_EXPIRING
-```
-
-Initial delivery to the frontend will use Server-Sent Events.
-
-WebSockets are not required for MVP 0.1.
+Application-event streaming is deferred beyond MVP 0.1. The current release
+exposes the REST API and persistent audit log only.
 
 ## 12. API
 

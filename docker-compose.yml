@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fpm
+      POSTGRES_USER: fpm
+      POSTGRES_PASSWORD: fpm-local-password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fpm -d fpm"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ./apps/backend
+    environment:
+      SPRING_PROFILES_ACTIVE: postgresql
+      FPM_DB_URL: jdbc:postgresql://postgres:5432/fpm
+      FPM_DB_USERNAME: fpm
+      FPM_DB_PASSWORD: fpm-local-password
+      FPM_ALLOWED_ORIGIN: http://localhost:8081
+      FPM_JWT_KEY_PATH: /app/security/jwt-keypair.pem
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - backend-security:/app/security
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/api/v1/system/readiness"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+
+  frontend:
+    build:
+      context: ./apps/web
+      args:
+        VITE_API_BASE_URL: /api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8081:80"
+
+volumes:
+  postgres-data:
+  backend-security:

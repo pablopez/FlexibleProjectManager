@@ -18,6 +18,8 @@ import com.flexibleprojectmanager.platform.shared.application.security.CurrentAc
 public class LicenseEnforcementInterceptor implements HandlerInterceptor {
     private static final Set<String> PUBLIC_OR_RECOVERY = Set.of(
             "GET /api/v1/system/health",
+            "GET /api/v1/system/readiness",
+            "GET /api/v1/system/liveness",
             "GET /api/v1/setup/status",
             "POST /api/v1/setup/initialize",
             "POST /api/v1/auth/login",

@@ -31,7 +31,19 @@ public class SystemHealthController {
         return ResponseEntity.status(status).body(response);
     }
 
+    @GetMapping("/readiness")
+    public ResponseEntity<HealthResponse> readiness() {
+        return health();
+    }
+
+    @GetMapping("/liveness")
+    public HealthStatusResponse liveness() {
+        return new HealthStatusResponse("UP");
+    }
+
     private HealthComponentStatus toApiStatus(HealthStatus status) {
         return HealthComponentStatus.valueOf(status.name());
     }
+
+    public record HealthStatusResponse(String status) {}
 }

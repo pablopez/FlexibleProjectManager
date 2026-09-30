@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${FPM_DB_URL:}
+    username: ${FPM_DB_USERNAME:}
+    password: ${FPM_DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    locations: classpath:db/migration/postgresql
+
+app:
+  database:
+    vendor: postgresql

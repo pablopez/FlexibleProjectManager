@@ -2,34 +2,31 @@ openapi: 3.1.0
 info:
   title: Flexible Project Manager API
   version: 0.1.0
-  description: >-
-    Initial API contract for Flexible Project Manager. This version defines the reusable Platform Core including setup,
-    authentication, organization, installation, licensing, users, roles, projects, settings and audit.
+  description: Initial API contract for Flexible Project Manager. This version defines the reusable Platform Core including setup, authentication, organization, installation, licensing, users, roles, projects, settings and audit.
 servers:
-- url: http://localhost:8080/api/v1
-  description: Local development
-tags:
-- name: Setup
-- name: Authentication
-- name: Organization
-- name: Installation
-- name: License
-- name: Users
-- name: Roles
-- name: Projects
-- name: Settings
-- name: Audit
-- name: System
+  - url: http://localhost:8080/api/v1
+    description: Local development
 security:
-- bearerAuth: []
+  - bearerAuth: []
+tags:
+  - name: Setup
+  - name: Authentication
+  - name: Organization
+  - name: Installation
+  - name: License
+  - name: Users
+  - name: Roles
+  - name: Projects
+  - name: Settings
+  - name: Audit
+  - name: System
 paths:
   /setup/status:
     get:
       tags:
-      - Setup
+        - Setup
       summary: Get one-time setup status
-      description: Public endpoint used before authentication to determine whether the local installation has already been
-        initialized.
+      description: Public endpoint used before authentication to determine whether the local installation has already been initialized.
       operationId: getSetupStatus
       security: []
       responses:
@@ -42,11 +39,9 @@ paths:
   /setup/initialize:
     post:
       tags:
-      - Setup
+        - Setup
       summary: Initialize a fresh local installation
-      description: One-time unauthenticated operation. Atomically creates the organization, installation, initial system roles
-        and permissions, administrator user and administrator membership. The operation is rejected after the system has been
-        initialized.
+      description: One-time unauthenticated operation. Atomically creates the organization, installation, initial system roles and permissions, administrator user and administrator membership. The operation is rejected after the system has been initialized.
       operationId: initializeSetup
       security: []
       requestBody:
@@ -64,17 +59,20 @@ paths:
                 $ref: '#/components/schemas/SetupInitializationResponse'
         '400':
           description: Invalid setup data
-          content: &id001
+          content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: System is already initialized
-          content: *id001
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /auth/login:
     post:
       tags:
-      - Authentication
+        - Authentication
       summary: Authenticate user
       operationId: login
       security: []
@@ -93,8 +91,7 @@ paths:
                 $ref: '#/components/schemas/TokenResponse'
           headers:
             Set-Cookie:
-              description: Sets the HttpOnly refresh-token cookie. Production deployments use Secure and SameSite=Strict.
-                Secure may be disabled only for local HTTP development.
+              description: Sets the HttpOnly refresh-token cookie. Production deployments use Secure and SameSite=Strict. Secure may be disabled only for local HTTP development.
               schema:
                 type: string
                 example: fpm_refresh_token=<opaque-token>; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Strict
@@ -102,13 +99,11 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-      description: Authenticates a user with email and password. On success, returns a short-lived access JWT in the JSON
-        body and sets an opaque refresh token in the HttpOnly `fpm_refresh_token` cookie. The raw refresh token is never included
-        in JSON.
+      description: Authenticates a user with email and password. On success, returns a short-lived access JWT in the JSON body and sets an opaque refresh token in the HttpOnly `fpm_refresh_token` cookie. The raw refresh token is never included in JSON.
   /auth/refresh:
     post:
       tags:
-      - Authentication
+        - Authentication
       summary: Refresh access token
       operationId: refreshToken
       responses:
@@ -127,18 +122,16 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
       security:
-      - refreshCookie: []
-      description: Rotates the refresh session using the HttpOnly refresh-token cookie. The request has no JSON body. On success,
-        the previously used refresh token is revoked, a new refresh token is issued in the cookie, and a new short-lived access
-        JWT is returned.
+        - refreshCookie: []
+      description: Rotates the refresh session using the HttpOnly refresh-token cookie. The request has no JSON body. On success, the previously used refresh token is revoked, a new refresh token is issued in the cookie, and a new short-lived access JWT is returned.
   /auth/logout:
     post:
       tags:
-      - Authentication
+        - Authentication
       summary: Logout current session
       operationId: logout
       security:
-      - refreshCookie: []
+        - refreshCookie: []
       responses:
         '204':
           description: Logged out
@@ -150,16 +143,15 @@ paths:
                 example: fpm_refresh_token=; Max-Age=0; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Strict
         '401':
           $ref: '#/components/responses/Unauthorized'
-      description: Revokes the refresh session identified by the HttpOnly refresh-token cookie and expires the cookie. The
-        request has no JSON body. The frontend must also discard any in-memory access token.
+      description: Revokes the refresh session identified by the HttpOnly refresh-token cookie and expires the cookie. The request has no JSON body. The frontend must also discard any in-memory access token.
   /auth/me:
     get:
       tags:
-      - Authentication
+        - Authentication
       summary: Get current user
       operationId: getCurrentUser
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Current user
@@ -172,11 +164,11 @@ paths:
   /organization:
     get:
       tags:
-      - Organization
+        - Organization
       summary: Get current organization
       operationId: getOrganization
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Organization
@@ -192,11 +184,11 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
-      - Organization
+        - Organization
       summary: Update current organization
       operationId: updateOrganization
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -221,11 +213,11 @@ paths:
   /installation:
     get:
       tags:
-      - Installation
+        - Installation
       summary: Get installation
       operationId: getInstallation
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Installation
@@ -241,11 +233,11 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
-      - Installation
+        - Installation
       summary: Update installation
       operationId: updateInstallation
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -270,11 +262,11 @@ paths:
   /license:
     get:
       tags:
-      - License
+        - License
       summary: Get active license
       operationId: getLicense
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: License
@@ -288,17 +280,15 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      description: Returns the currently installed license. Returns 404 when no license is installed; the internal UNLICENSED
-        state is represented by this 404 response. License claims are returned only when verified. An INVALID persisted artifact
-        may return status INVALID with claim-derived fields absent or null.
+      description: Returns the currently installed license. Returns 404 when no license is installed; the internal UNLICENSED state is represented by this 404 response. License claims are returned only when verified. An INVALID persisted artifact may return status INVALID with claim-derived fields absent or null.
   /license/activate:
     post:
       tags:
-      - License
+        - License
       summary: Activate a signed license
       operationId: activateLicense
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -320,21 +310,15 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
-      description: Validates and activates a compact JWS license signed with Ed25519 (alg=EdDSA). The backend validates signature,
-        the mandatory binding to exactly one Installation.id, validity dates, maxUsers capacity and replacement rules before
-        activation. Organization identity is derived server-side from the current installation. A failed candidate activation
-        leaves the currently installed valid license untouched. Activation failures may use LICENSE_INVALID,
-        LICENSE_SIGNATURE_INVALID, LICENSE_KEY_UNKNOWN, LICENSE_VERSION_UNSUPPORTED, LICENSE_INSTALLATION_MISMATCH,
-        LICENSE_EXPIRED or LICENSE_USER_LIMIT_EXCEEDED. If the current effective active-user count exceeds candidate maxUsers,
-        the response is HTTP 409 with LICENSE_USER_LIMIT_EXCEEDED.
+      description: Validates and activates a compact JWS license signed with Ed25519 (alg=EdDSA). The backend validates signature, the mandatory binding to exactly one Installation.id, validity dates, maxUsers capacity and replacement rules before activation. Organization identity is derived server-side from the current installation. A failed candidate activation leaves the currently installed valid license untouched. Activation failures may use LICENSE_INVALID, LICENSE_SIGNATURE_INVALID, LICENSE_KEY_UNKNOWN, LICENSE_VERSION_UNSUPPORTED, LICENSE_INSTALLATION_MISMATCH, LICENSE_EXPIRED or LICENSE_USER_LIMIT_EXCEEDED. If the current effective active-user count exceeds candidate maxUsers, the response is HTTP 409 with LICENSE_USER_LIMIT_EXCEEDED.
   /license/deactivate:
     post:
       tags:
-      - License
+        - License
       summary: Deactivate current license
       operationId: deactivateLicense
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '204':
           description: License deactivated
@@ -344,18 +328,15 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      description: Removes the currently installed signed-license artifact. This is local deactivation, not cryptographic or
-        remote revocation. Effective state becomes UNLICENSED, GET /license returns 404, normal licensed operations are blocked,
-        recovery and activation remain available, and users, projects, organization and other business data are not mutated or
-        deleted.
+      description: Removes the currently installed signed-license artifact. This is local deactivation, not cryptographic or remote revocation. Effective state becomes UNLICENSED, GET /license returns 404, normal licensed operations are blocked, recovery and activation remain available, and users, projects, organization and other business data are not mutated or deleted.
   /license/entitlements:
     get:
       tags:
-      - License
+        - License
       summary: Get effective entitlements
       operationId: getEntitlements
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Effective licenseFeatures and maxUsers
@@ -367,23 +348,22 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-      description: Returns effective entitlements, never raw or unverified claims. When the effective license is not ACTIVE,
-        maxUsers is null and licenseFeatures is empty.
+      description: Returns effective entitlements, never raw or unverified claims. When the effective license is not ACTIVE, maxUsers is null and licenseFeatures is empty.
   /users:
     get:
       tags:
-      - Users
+        - Users
       summary: List users
       operationId: listUsers
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/Page'
-      - $ref: '#/components/parameters/Size'
-      - name: status
-        in: query
-        schema:
-          $ref: '#/components/schemas/UserStatus'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
       responses:
         '200':
           description: Users
@@ -397,11 +377,11 @@ paths:
           $ref: '#/components/responses/Forbidden'
     post:
       tags:
-      - Users
+        - Users
       summary: Create user
       operationId: createUser
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -425,14 +405,14 @@ paths:
           $ref: '#/components/responses/Conflict'
   /users/{userId}:
     parameters:
-    - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/UserId'
     get:
       tags:
-      - Users
+        - Users
       summary: Get user
       operationId: getUser
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: User
@@ -448,11 +428,11 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
-      - Users
+        - Users
       summary: Update user
       operationId: updateUser
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -478,14 +458,14 @@ paths:
           $ref: '#/components/responses/Conflict'
   /users/{userId}/roles:
     parameters:
-    - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/UserId'
     put:
       tags:
-      - Users
+        - Users
       summary: Replace user roles
       operationId: replaceUserRoles
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -510,11 +490,11 @@ paths:
   /roles:
     get:
       tags:
-      - Roles
+        - Roles
       summary: List system roles
       operationId: listRoles
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Roles
@@ -529,18 +509,18 @@ paths:
   /projects:
     get:
       tags:
-      - Projects
+        - Projects
       summary: List projects
       operationId: listProjects
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/Page'
-      - $ref: '#/components/parameters/Size'
-      - name: status
-        in: query
-        schema:
-          $ref: '#/components/schemas/ProjectStatus'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ProjectStatus'
       responses:
         '200':
           description: Projects
@@ -554,11 +534,11 @@ paths:
           $ref: '#/components/responses/Forbidden'
     post:
       tags:
-      - Projects
+        - Projects
       summary: Create project
       operationId: createProject
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -582,14 +562,14 @@ paths:
           $ref: '#/components/responses/Conflict'
   /projects/{projectId}:
     parameters:
-    - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/ProjectId'
     get:
       tags:
-      - Projects
+        - Projects
       summary: Get project
       operationId: getProject
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Project
@@ -605,11 +585,11 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
-      - Projects
+        - Projects
       summary: Update project
       operationId: updateProject
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -635,14 +615,14 @@ paths:
           $ref: '#/components/responses/Conflict'
   /projects/{projectId}/archive:
     parameters:
-    - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/ProjectId'
     post:
       tags:
-      - Projects
+        - Projects
       summary: Archive project
       operationId: archiveProject
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Project archived
@@ -660,14 +640,14 @@ paths:
           $ref: '#/components/responses/Conflict'
   /projects/{projectId}/restore:
     parameters:
-    - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/ProjectId'
     post:
       tags:
-      - Projects
+        - Projects
       summary: Restore project
       operationId: restoreProject
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Project restored
@@ -686,11 +666,11 @@ paths:
   /settings/user:
     get:
       tags:
-      - Settings
+        - Settings
       summary: Get current user settings
       operationId: getUserSettings
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: User settings
@@ -704,11 +684,11 @@ paths:
           $ref: '#/components/responses/Forbidden'
     patch:
       tags:
-      - Settings
+        - Settings
       summary: Update current user settings
       operationId: updateUserSettings
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -731,63 +711,53 @@ paths:
   /audit:
     get:
       tags:
-      - Audit
+        - Audit
       summary: Query audit log
-      description: >-
-        Returns immutable, append-only audit history for the organization of the
-        authenticated actor. The effective permission required is audit:read.
-        Organization scope is derived server-side from CurrentActor.organizationId
-        and cannot be selected or broadened by the client. Audit entries are
-        created internally by successful Platform Core mutations; there are no
-        REST create, update or delete operations. Results are ordered by
-        createdAt descending and id ascending. The from bound and to bound are
-        inclusive; when both are supplied, from must be less than or equal to to.
-        The endpoint is subject to normal licensing enforcement and is not a
-        licensing recovery endpoint.
+      description: Returns immutable, append-only audit history for the organization of the authenticated actor. The effective permission required is audit:read. Organization scope is derived server-side from CurrentActor.organizationId and cannot be selected or broadened by the client. Audit entries are created internally by successful Platform Core mutations; there are no REST create, update or delete operations. Results are ordered by createdAt descending and id ascending. The from bound and to bound are inclusive; when both are supplied, from must be less than or equal to to. The endpoint is subject to normal licensing enforcement and is not a licensing recovery endpoint.
       operationId: listAuditEntries
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       parameters:
-      - name: userId
-        in: query
-        description: Public API name for the actor user ID filter. It is always applied within the current actor's organization.
-        schema:
-          type: string
-          format: uuid
-      - name: action
-        in: query
-        description: Stable uppercase machine-readable audit action code.
-        schema:
-          type: string
-          maxLength: 64
-          pattern: '^[A-Z][A-Z0-9_]*$'
-      - name: resourceType
-        in: query
-        description: Stable uppercase machine-readable resource type.
-        schema:
-          type: string
-          maxLength: 64
-          pattern: '^[A-Z][A-Z0-9_]*$'
-      - name: resourceId
-        in: query
-        description: UUID of the audited resource, when the event has a stable resource identifier.
-        schema:
-          type: string
-          format: uuid
-      - name: from
-        in: query
-        description: Inclusive lower bound for createdAt. If to is also supplied, from must be less than or equal to to.
-        schema:
-          type: string
-          format: date-time
-      - name: to
-        in: query
-        description: Inclusive upper bound for createdAt. If from is also supplied, from must be less than or equal to to.
-        schema:
-          type: string
-          format: date-time
-      - $ref: '#/components/parameters/Page'
-      - $ref: '#/components/parameters/Size'
+        - name: userId
+          in: query
+          description: Public API name for the actor user ID filter. It is always applied within the current actor's organization.
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          description: Stable uppercase machine-readable audit action code.
+          schema:
+            type: string
+            maxLength: 64
+            pattern: ^[A-Z][A-Z0-9_]*$
+        - name: resourceType
+          in: query
+          description: Stable uppercase machine-readable resource type.
+          schema:
+            type: string
+            maxLength: 64
+            pattern: ^[A-Z][A-Z0-9_]*$
+        - name: resourceId
+          in: query
+          description: UUID of the audited resource, when the event has a stable resource identifier.
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          description: Inclusive lower bound for createdAt. If to is also supplied, from must be less than or equal to to.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Inclusive upper bound for createdAt. If from is also supplied, from must be less than or equal to to.
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
       responses:
         '200':
           description: Audit entries
@@ -804,7 +774,7 @@ paths:
   /system/health:
     get:
       tags:
-      - System
+        - System
       summary: Get public system health
       operationId: getSystemHealth
       responses:
@@ -830,14 +800,12 @@ paths:
                 backend: UP
                 database: DOWN
                 timestamp: '2026-09-26T11:00:00Z'
-      description: Public lightweight readiness check used by the local web application and operational tooling. It is available
-        before first-run initialization and does not require authentication. The check validates that the backend is running
-        and that the configured database is reachable. It does not validate license state or business data.
+      description: Public lightweight readiness check used by the local web application and operational tooling. It is available before first-run initialization and does not require authentication. The check validates that the backend is running and that the configured database is reachable. It does not validate license state or business data.
       security: []
   /system/readiness:
     get:
       tags:
-      - System
+        - System
       summary: Get public readiness
       operationId: getSystemReadiness
       responses:
@@ -857,7 +825,7 @@ paths:
   /system/liveness:
     get:
       tags:
-      - System
+        - System
       summary: Get public liveness
       operationId: getSystemLiveness
       responses:
@@ -878,8 +846,7 @@ components:
       type: apiKey
       in: cookie
       name: fpm_refresh_token
-      description: Opaque refresh token stored by the browser as an HttpOnly cookie. The raw token is never returned in JSON
-        and must never be stored by frontend JavaScript.
+      description: Opaque refresh token stored by the browser as an HttpOnly cookie. The raw token is never returned in JSON and must never be stored by frontend JavaScript.
   parameters:
     Page:
       name: page
@@ -924,9 +891,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
-      description: Forbidden. Normal authenticated operations also use HTTP 403 with code LICENSE_NOT_ACTIVE when the effective
-        license state is UNLICENSED, EXPIRED or INVALID. License recovery endpoints remain available subject to authentication
-        and permission requirements.
+      description: Forbidden. Normal authenticated operations also use HTTP 403 with code LICENSE_NOT_ACTIVE when the effective license state is UNLICENSED, EXPIRED or INVALID. License recovery endpoints remain available subject to authentication and permission requirements.
       content:
         application/json:
           schema:
@@ -946,8 +911,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
-      description: Conflict. License activation uses code LICENSE_USER_LIMIT_EXCEEDED when the current effective active-user
-        count exceeds the candidate license maxUsers; the previously installed valid license remains untouched.
+      description: Conflict. License activation uses code LICENSE_USER_LIMIT_EXCEEDED when the current effective active-user count exceeds the candidate license maxUsers; the previously installed valid license remains untouched.
       content:
         application/json:
           schema:
@@ -956,11 +920,11 @@ components:
     ErrorResponse:
       type: object
       required:
-      - code
-      - message
-      - status
-      - timestamp
-      - path
+        - code
+        - message
+        - status
+        - timestamp
+        - path
       properties:
         code:
           type: string
@@ -980,8 +944,8 @@ components:
     LoginRequest:
       type: object
       required:
-      - email
-      - password
+        - email
+        - password
       properties:
         email:
           type: string
@@ -993,13 +957,12 @@ components:
     TokenResponse:
       type: object
       required:
-      - accessToken
-      - expiresIn
+        - accessToken
+        - expiresIn
       properties:
         accessToken:
           type: string
-          description: 'Short-lived JWT access token. The browser client must keep it in memory only and send it using Authorization:
-            Bearer.'
+          description: 'Short-lived JWT access token. The browser client must keep it in memory only and send it using Authorization: Bearer.'
         expiresIn:
           type: integer
           minimum: 1
@@ -1009,8 +972,8 @@ components:
     OrganizationSummary:
       type: object
       required:
-      - id
-      - name
+        - id
+        - name
       properties:
         id:
           type: string
@@ -1020,12 +983,12 @@ components:
     CurrentUserResponse:
       type: object
       required:
-      - id
-      - email
-      - displayName
-      - organization
-      - roles
-      - permissions
+        - id
+        - email
+        - displayName
+        - organization
+        - roles
+        - permissions
       properties:
         id:
           type: string
@@ -1039,7 +1002,7 @@ components:
           $ref: '#/components/schemas/OrganizationSummary'
         roles:
           type: array
-          items: &id002
+          items:
             $ref: '#/components/schemas/RoleCode'
         permissions:
           type: array
@@ -1048,16 +1011,16 @@ components:
     OrganizationStatus:
       type: string
       enum:
-      - ACTIVE
-      - DISABLED
+        - ACTIVE
+        - DISABLED
     OrganizationResponse:
       type: object
       required:
-      - id
-      - name
-      - status
-      - createdAt
-      - updatedAt
+        - id
+        - name
+        - status
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -1066,8 +1029,8 @@ components:
           type: string
         slug:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         status:
           $ref: '#/components/schemas/OrganizationStatus'
         createdAt:
@@ -1086,31 +1049,30 @@ components:
           maxLength: 200
         slug:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           maxLength: 100
     InstallationStatus:
       type: string
       enum:
-      - ACTIVE
-      - DISABLED
-      - UNLICENSED
+        - ACTIVE
+        - DISABLED
+        - UNLICENSED
     InstallationResponse:
       type: object
       required:
-      - id
-      - organizationId
-      - name
-      - platform
-      - applicationVersion
-      - status
-      - createdAt
+        - id
+        - organizationId
+        - name
+        - platform
+        - applicationVersion
+        - status
+        - createdAt
       properties:
         id:
           type: string
           format: uuid
-          description: Stable backend-generated UUID identifying this installation. This value is not secret. It is referenced
-            as installationId by other resources such as licenses.
+          description: Stable backend-generated UUID identifying this installation. This value is not secret. It is referenced as installationId by other resources such as licenses.
         organizationId:
           type: string
           format: uuid
@@ -1119,10 +1081,10 @@ components:
         platform:
           type: string
           enum:
-          - WINDOWS
-          - LINUX
-          - CLOUD
-          - OTHER
+            - WINDOWS
+            - LINUX
+            - CLOUD
+            - OTHER
         applicationVersion:
           type: string
         status:
@@ -1132,11 +1094,10 @@ components:
           format: date-time
         lastSeenAt:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           format: date-time
-      description: Represents a concrete application installation. Its id is the canonical installation identity; no separate
-        installation key or hardware-derived secret is used.
+      description: Represents a concrete application installation. Its id is the canonical installation identity; no separate installation key or hardware-derived secret is used.
     UpdateInstallationRequest:
       type: object
       minProperties: 1
@@ -1148,17 +1109,17 @@ components:
     LicenseStatus:
       type: string
       enum:
-      - ACTIVE
-      - EXPIRED
-      - INVALID
+        - ACTIVE
+        - EXPIRED
+        - INVALID
       description: Effective license validation status. UNLICENSED is represented by 404 when no license is installed.
     LicenseType:
       type: string
       enum:
-      - TRIAL
-      - SUBSCRIPTION
-      - PERPETUAL
-      - DEVELOPMENT
+        - TRIAL
+        - SUBSCRIPTION
+        - PERPETUAL
+        - DEVELOPMENT
       description: Supported license type for MVP 0.1.
     LicenseLimits:
       type: object
@@ -1168,15 +1129,15 @@ components:
           minimum: 1
           description: Maximum number of effective active users. Required and non-null in a structurally valid signed license.
       required:
-      - maxUsers
+        - maxUsers
       additionalProperties: false
     LicenseResponse:
       type: object
       properties:
         licenseId:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           format: uuid
           description: Verified signed license identifier. Null when a persisted artifact is INVALID.
         organizationId:
@@ -1191,45 +1152,45 @@ components:
           $ref: '#/components/schemas/LicenseStatus'
         type:
           anyOf:
-          - $ref: '#/components/schemas/LicenseType'
-          - type: 'null'
+            - $ref: '#/components/schemas/LicenseType'
+            - type: 'null'
           description: Verified license type. Null when a persisted artifact is INVALID.
         issuedAt:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           format: date-time
           description: Verified issued timestamp. Null when a persisted artifact is INVALID.
         expiresAt:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           format: date-time
           description: Verified expiry. Required for TRIAL, SUBSCRIPTION and DEVELOPMENT; null for PERPETUAL or INVALID artifacts.
         licenseFeatures:
           anyOf:
-          - type: array
-            uniqueItems: true
-            items:
-              type: string
-              pattern: ^[a-z][a-z0-9.-]*$
-          - type: 'null'
+            - type: array
+              uniqueItems: true
+              items:
+                type: string
+                pattern: ^[a-z][a-z0-9.-]*$
+            - type: 'null'
           description: Verified opaque feature keywords. Null may be returned when a persisted artifact is INVALID.
         limits:
           anyOf:
-          - $ref: '#/components/schemas/LicenseLimits'
-          - type: 'null'
+            - $ref: '#/components/schemas/LicenseLimits'
+            - type: 'null'
           description: Verified license limits. Null when a persisted artifact is INVALID.
         signatureAlgorithm:
           anyOf:
-          - type: string
-            const: Ed25519
-          - type: 'null'
+            - type: string
+              const: Ed25519
+            - type: 'null'
           description: Cryptographic algorithm used to validate the signed license.
       required:
-      - organizationId
-      - installationId
-      - status
+        - organizationId
+        - installationId
+        - status
       additionalProperties: false
     ActivateLicenseRequest:
       type: object
@@ -1237,18 +1198,17 @@ components:
         signedLicense:
           type: string
           minLength: 1
-          description: License encoded as a compact JWS signed with Ed25519 (JWS alg=EdDSA). The application validates it
-            using a trusted public key.
+          description: License encoded as a compact JWS signed with Ed25519 (JWS alg=EdDSA). The application validates it using a trusted public key.
       required:
-      - signedLicense
+        - signedLicense
       additionalProperties: false
     EntitlementsResponse:
       type: object
       properties:
         maxUsers:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           minimum: 1
           description: Effective maximum number of users, or null when the license is not ACTIVE.
         licenseFeatures:
@@ -1259,24 +1219,24 @@ components:
             pattern: ^[a-z][a-z0-9.-]*$
           description: Effective opaque feature keywords. Empty when the license is not ACTIVE.
       required:
-      - maxUsers
-      - licenseFeatures
+        - maxUsers
+        - licenseFeatures
       additionalProperties: false
     UserStatus:
       type: string
       enum:
-      - ACTIVE
-      - DISABLED
+        - ACTIVE
+        - DISABLED
     UserResponse:
       type: object
       required:
-      - id
-      - email
-      - displayName
-      - status
-      - roles
-      - createdAt
-      - updatedAt
+        - id
+        - email
+        - displayName
+        - status
+        - roles
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -1290,7 +1250,8 @@ components:
           $ref: '#/components/schemas/UserStatus'
         roles:
           type: array
-          items: *id002
+          items:
+            $ref: '#/components/schemas/RoleCode'
         createdAt:
           type: string
           format: date-time
@@ -1317,18 +1278,18 @@ components:
           type: integer
           minimum: 0
       required:
-      - items
-      - page
-      - size
-      - total
-      - totalPages
+        - items
+        - page
+        - size
+        - total
+        - totalPages
     CreateUserRequest:
       type: object
       required:
-      - email
-      - displayName
-      - password
-      - roles
+        - email
+        - displayName
+        - password
+        - roles
       properties:
         email:
           type: string
@@ -1345,7 +1306,8 @@ components:
           type: array
           minItems: 1
           uniqueItems: true
-          items: *id002
+          items:
+            $ref: '#/components/schemas/RoleCode'
     UpdateUserRequest:
       type: object
       minProperties: 1
@@ -1359,27 +1321,29 @@ components:
     UpdateUserRolesRequest:
       type: object
       required:
-      - roles
+        - roles
       properties:
         roles:
           type: array
           minItems: 1
           uniqueItems: true
-          items: *id002
+          items:
+            $ref: '#/components/schemas/RoleCode'
     RoleResponse:
       type: object
       required:
-      - code
-      - name
-      - permissions
+        - code
+        - name
+        - permissions
       properties:
-        code: *id002
+        code:
+          $ref: '#/components/schemas/RoleCode'
         name:
           type: string
         description:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         permissions:
           type: array
           items:
@@ -1387,7 +1351,7 @@ components:
     RoleListResponse:
       type: object
       required:
-      - items
+        - items
       properties:
         items:
           type: array
@@ -1396,18 +1360,18 @@ components:
     ProjectStatus:
       type: string
       enum:
-      - ACTIVE
-      - ARCHIVED
+        - ACTIVE
+        - ARCHIVED
     ProjectResponse:
       type: object
       required:
-      - id
-      - organizationId
-      - name
-      - status
-      - createdBy
-      - createdAt
-      - updatedAt
+        - id
+        - organizationId
+        - name
+        - status
+        - createdBy
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -1419,8 +1383,8 @@ components:
           type: string
         description:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         status:
           $ref: '#/components/schemas/ProjectStatus'
         createdBy:
@@ -1452,15 +1416,15 @@ components:
           type: integer
           minimum: 0
       required:
-      - items
-      - page
-      - size
-      - total
-      - totalPages
+        - items
+        - page
+        - size
+        - total
+        - totalPages
     CreateProjectRequest:
       type: object
       required:
-      - name
+        - name
       properties:
         name:
           type: string
@@ -1468,8 +1432,8 @@ components:
           maxLength: 200
         description:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           maxLength: 2000
     UpdateProjectRequest:
       type: object
@@ -1481,15 +1445,15 @@ components:
           maxLength: 200
         description:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           maxLength: 2000
     AuditActor:
       type: object
       description: Presentation information for the actor. The display name is obtained from current user data and is not an authoritative historical snapshot.
       required:
-      - id
-      - displayName
+        - id
+        - displayName
       properties:
         id:
           type: string
@@ -1500,49 +1464,38 @@ components:
       type: object
       description: Immutable audit history entry. The organization scope is internal and is not client-selectable or returned here.
       required:
-      - id
-      - action
-      - resourceType
-      - createdAt
+        - id
+        - action
+        - resourceType
+        - createdAt
       properties:
         id:
           type: string
           format: uuid
         actor:
           anyOf:
-          - $ref: '#/components/schemas/AuditActor'
-          - type: 'null'
+            - $ref: '#/components/schemas/AuditActor'
+            - type: 'null'
         action:
           type: string
           maxLength: 64
-          pattern: '^[A-Z][A-Z0-9_]*$'
-          description: >-
-            Stable machine-readable action code; it is not localized and is an
-            extensible string rather than a closed enum. Initial Slice 9 values
-            are PROJECT_CREATED, PROJECT_UPDATED, PROJECT_ARCHIVED,
-            PROJECT_RESTORED, USER_CREATED, USER_UPDATED, USER_DISABLED,
-            USER_REACTIVATED, USER_ROLES_CHANGED, ORGANIZATION_UPDATED,
-            INSTALLATION_UPDATED, LICENSE_ACTIVATED, LICENSE_REPLACED,
-            LICENSE_DEACTIVATED and USER_PREFERENCES_UPDATED.
+          pattern: ^[A-Z][A-Z0-9_]*$
+          description: Stable machine-readable action code; it is not localized and is an extensible string rather than a closed enum. Initial Slice 9 values are PROJECT_CREATED, PROJECT_UPDATED, PROJECT_ARCHIVED, PROJECT_RESTORED, USER_CREATED, USER_UPDATED, USER_DISABLED, USER_REACTIVATED, USER_ROLES_CHANGED, ORGANIZATION_UPDATED, INSTALLATION_UPDATED, LICENSE_ACTIVATED, LICENSE_REPLACED, LICENSE_DEACTIVATED and USER_PREFERENCES_UPDATED.
         resourceType:
           type: string
           maxLength: 64
-          pattern: '^[A-Z][A-Z0-9_]*$'
-          description: >-
-            Stable machine-readable resource type; it is an extensible string
-            rather than a closed enum. Initial Core values are PROJECT, USER,
-            ORGANIZATION, INSTALLATION, LICENSE and USER_PREFERENCES. Future
-            modules may add resource types without a schema enum migration.
+          pattern: ^[A-Z][A-Z0-9_]*$
+          description: Stable machine-readable resource type; it is an extensible string rather than a closed enum. Initial Core values are PROJECT, USER, ORGANIZATION, INSTALLATION, LICENSE and USER_PREFERENCES. Future modules may add resource types without a schema enum migration.
         resourceId:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
           format: uuid
           description: Historical UUID reference when the audited resource has a trustworthy stable identifier.
         metadata:
           anyOf:
-          - $ref: '#/components/schemas/AuditMetadata'
-          - type: 'null'
+            - $ref: '#/components/schemas/AuditMetadata'
+            - type: 'null'
           description: Optional, explicitly constructed, bounded, non-secret metadata. It is not authoritative business state.
         createdAt:
           type: string
@@ -1583,15 +1536,14 @@ components:
           type: integer
           minimum: 0
       required:
-      - items
-      - page
-      - size
-      - total
-      - totalPages
+        - items
+        - page
+        - size
+        - total
+        - totalPages
     HealthResponse:
       type: object
-      description: Minimal public health information. It intentionally does not expose database vendor, filesystem paths,
-        deployment mode, organization data, license information or application internals.
+      description: Minimal public health information. It intentionally does not expose database vendor, filesystem paths, deployment mode, organization data, license information or application internals.
       properties:
         status:
           $ref: '#/components/schemas/HealthComponentStatus'
@@ -1607,70 +1559,71 @@ components:
           format: date-time
           description: UTC time at which the health check was evaluated.
       required:
-      - status
-      - backend
-      - database
-      - timestamp
+        - status
+        - backend
+        - database
+        - timestamp
       additionalProperties: false
     LivenessResponse:
       type: object
       properties:
         status:
           type: string
-          enum: [UP]
+          enum:
+            - UP
       required:
-      - status
+        - status
       additionalProperties: false
     SetupStatusResponse:
       type: object
       required:
-      - initialized
+        - initialized
       properties:
         initialized:
           type: boolean
           description: Whether the one-time local setup has already completed.
           examples:
-          - false
+            - false
     SetupOrganizationRequest:
       type: object
       required:
-      - name
+        - name
       properties:
         name:
           type: string
           minLength: 1
           maxLength: 200
           examples:
-          - Example Studio
+            - Example Studio
     SetupInstallationRequest:
       type: object
       required:
-      - name
+        - name
       properties:
         name:
           type: string
           minLength: 1
           maxLength: 200
           examples:
-          - Main Workstation
+            - Main Workstation
     SetupAdministratorRequest:
       type: object
       required:
-      - email
-      - displayName
-      - password
+        - email
+        - displayName
+        - password
       properties:
         email:
           type: string
           format: email
           examples:
-          - admin@example.com
+            - admin@example.com
         displayName:
           type: string
           minLength: 1
           maxLength: 200
           examples:
-          - Administrator
+            - Administrator
         password:
           type: string
           format: password
@@ -1679,9 +1632,9 @@ components:
     InitializeSetupRequest:
       type: object
       required:
-      - organization
-      - installation
-      - administrator
+        - organization
+        - installation
+        - administrator
       properties:
         organization:
           $ref: '#/components/schemas/SetupOrganizationRequest'
@@ -1692,9 +1645,9 @@ components:
     SetupAdministratorResponse:
       type: object
       required:
-      - id
-      - email
-      - displayName
+        - id
+        - email
+        - displayName
       properties:
         id:
           type: string
@@ -1707,10 +1660,10 @@ components:
     SetupInitializationResponse:
       type: object
       required:
-      - initialized
-      - organization
-      - installation
-      - administrator
+        - initialized
+        - organization
+        - installation
+        - administrator
       properties:
         initialized:
           type: boolean
@@ -1724,22 +1677,22 @@ components:
     RoleCode:
       type: string
       enum:
-      - ADMIN
-      - USER
-      - VIEWER
+        - ADMIN
+        - USER
+        - VIEWER
       description: System-defined role code for MVP 0.1.
     LanguageCode:
       type: string
       enum:
-      - es
-      - en
+        - es
+        - en
       description: Supported UI language for MVP 0.1.
     ThemeMode:
       type: string
       enum:
-      - light
-      - dark
-      - system
+        - light
+        - dark
+        - system
       description: Supported UI theme mode for MVP 0.1.
     UserSettingsResponse:
       type: object
@@ -1749,8 +1702,8 @@ components:
         theme:
           $ref: '#/components/schemas/ThemeMode'
       required:
-      - language
-      - theme
+        - language
+        - theme
       additionalProperties: false
     UpdateUserSettingsRequest:
       type: object
@@ -1764,5 +1717,5 @@ components:
     HealthComponentStatus:
       type: string
       enum:
-      - UP
-      - DOWN
+        - UP
+        - DOWN
