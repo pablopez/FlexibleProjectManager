@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.flexibleprojectmanager.platform.organization.domain.Organization;
+import com.flexibleprojectmanager.platform.audit.application.AuditConstants;
+import com.flexibleprojectmanager.platform.audit.application.AuditEvents;
+import com.flexibleprojectmanager.platform.audit.application.AuditRecorder;
 import com.flexibleprojectmanager.platform.shared.application.security.CurrentActor;
 
 import static com.flexibleprojectmanager.platform.organization.application.OrganizationManagementUseCase.OrganizationView;
@@ -16,15 +19,21 @@ import static com.flexibleprojectmanager.platform.organization.application.Organ
 public class OrganizationManagementService implements OrganizationManagementUseCase {
     private final OrganizationRepository repository;
     private final Clock clock;
+    private final AuditRecorder audit;
 
-    @Autowired
     public OrganizationManagementService(OrganizationRepository repository) {
-        this(repository, Clock.systemUTC());
+        this(repository, Clock.systemUTC(), event -> {});
     }
 
     OrganizationManagementService(OrganizationRepository repository, Clock clock) {
+        this(repository, clock, event -> {});
+    }
+
+    @Autowired
+    public OrganizationManagementService(OrganizationRepository repository, Clock clock, AuditRecorder audit) {
         this.repository = repository;
         this.clock = clock;
+        this.audit = audit;
     }
 
     @Override
@@ -44,7 +53,13 @@ public class OrganizationManagementService implements OrganizationManagementUseC
         Organization current = find(actor);
         String name = command.nameSupplied() ? normalizeName(command.name()) : current.name();
         String slug = command.slugSupplied() ? normalizeSlug(command.slug()) : current.slug();
-        return view(repository.save(current.update(name, slug, Instant.now(clock))));
+        Organization updated = current.update(name, slug, Instant.now(clock));
+        Organization saved = repository.save(updated);
+        var fields = new java.util.ArrayList<String>();
+        if (command.nameSupplied() && !java.util.Objects.equals(current.name(), saved.name())) fields.add("name");
+        if (command.slugSupplied() && !java.util.Objects.equals(current.slug(), saved.slug())) fields.add("slug");
+        if (!fields.isEmpty()) AuditEvents.record(audit, actor, "ORGANIZATION_UPDATED", AuditConstants.ORGANIZATION, saved.id(), AuditEvents.fields(fields), saved.updatedAt());
+        return view(saved);
     }
 
     private Organization find(CurrentActor actor) {

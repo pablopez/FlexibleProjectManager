@@ -20,6 +20,9 @@ import com.flexibleprojectmanager.platform.users.application.UserCapacityPolicy;
 import com.flexibleprojectmanager.platform.users.application.UserRepository;
 import com.flexibleprojectmanager.platform.users.domain.OrganizationMember;
 import com.flexibleprojectmanager.platform.users.domain.User;
+import com.flexibleprojectmanager.platform.audit.application.AuditConstants;
+import com.flexibleprojectmanager.platform.audit.application.AuditEvents;
+import com.flexibleprojectmanager.platform.audit.application.AuditRecorder;
 
 @Service
 public class LicenseManagementService implements LicenseManagementUseCase, LicenseStatusProvider,
@@ -29,16 +32,24 @@ public class LicenseManagementService implements LicenseManagementUseCase, Licen
     private final InstallationRepository installations;
     private final UserRepository users;
     private final Clock clock;
+    private final AuditRecorder audit;
+
+    public LicenseManagementService(LicenseRepository licenses, LicenseVerifier verifier,
+                                    InstallationRepository installations, UserRepository users,
+                                    Clock clock) {
+        this(licenses, verifier, installations, users, clock, event -> {});
+    }
 
     @Autowired
     public LicenseManagementService(LicenseRepository licenses, LicenseVerifier verifier,
                                     InstallationRepository installations, UserRepository users,
-                                    Clock clock) {
+                                    Clock clock, AuditRecorder audit) {
         this.licenses = licenses;
         this.verifier = verifier;
         this.installations = installations;
         this.users = users;
         this.clock = clock;
+        this.audit = audit;
     }
 
     @Override
@@ -65,7 +76,9 @@ public class LicenseManagementService implements LicenseManagementUseCase, Licen
         if (users.countEffectiveActiveUsers(actor.organizationId()) > candidate.maxUsers()) {
             throw new LicenseException("LICENSE_USER_LIMIT_EXCEEDED");
         }
+        var previous = licenses.findByInstallationId(installation.id());
         licenses.save(installation.id(), signedLicense, now, now);
+        AuditEvents.record(audit, actor, previous.isEmpty() ? "LICENSE_ACTIVATED" : "LICENSE_REPLACED", AuditConstants.LICENSE, candidate.licenseId(), null, now);
         return view(new LicenseStatusProvider.LicenseEvaluation(EffectiveLicenseStatus.ACTIVE,
                 actor.organizationId(), installation.id(), candidate));
     }
@@ -75,8 +88,15 @@ public class LicenseManagementService implements LicenseManagementUseCase, Licen
     public void deactivate(CurrentActor actor) {
         actor.requirePermission("license:manage");
         Installation installation = installations.findCurrentByOrganizationId(actor.organizationId());
-        if (licenses.findByInstallationId(installation.id()).isEmpty()) throw new LicenseNotFoundException();
+        var stored = licenses.findByInstallationId(installation.id());
+        if (stored.isEmpty()) throw new LicenseNotFoundException();
+        UUID verifiedId = null;
+        try {
+            VerifiedLicense verified = verifier.verify(stored.get().signedLicense());
+            if (verified.installationId().equals(installation.id())) verifiedId = verified.licenseId();
+        } catch (RuntimeException ignored) { }
         licenses.deleteByInstallationId(installation.id());
+        AuditEvents.record(audit, actor, "LICENSE_DEACTIVATED", AuditConstants.LICENSE, verifiedId, null, clock.instant());
     }
 
     @Override

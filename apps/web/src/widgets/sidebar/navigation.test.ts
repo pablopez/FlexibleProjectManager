@@ -17,6 +17,11 @@ describe('shell navigation', () => {
     expect(visibleNavigation(['USER'], ['license:read']).map((item) => item.label)).toContain('License')
   })
 
+  it('shows audit only with audit:read', () => {
+    expect(visibleNavigation(['USER'], ['audit:read']).map((item) => item.label)).toContain('Audit')
+    expect(visibleNavigation(['ADMIN'], ['license:read']).map((item) => item.label)).not.toContain('Audit')
+  })
+
   it('marks the exact route and nested route as active', () => {
     expect(isNavigationItemActive('/app/projects', '/app/projects')).toBe(true)
     expect(isNavigationItemActive('/app/projects/detail', '/app/projects')).toBe(true)

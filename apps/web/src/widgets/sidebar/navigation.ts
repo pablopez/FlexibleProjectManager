@@ -1,6 +1,6 @@
 export type NavigationItem = {
   label: string
-  key: 'dashboard' | 'projects' | 'users' | 'organization' | 'license' | 'settings'
+  key: 'dashboard' | 'projects' | 'users' | 'organization' | 'license' | 'settings' | 'audit'
   path: string
   adminOnly?: boolean
   permission?: string
@@ -13,6 +13,7 @@ export const navigationItems: NavigationItem[] = [
   { key: 'organization', label: 'Organization', path: '/app/organization', adminOnly: true },
   { key: 'license', label: 'License', path: '/app/license', permission: 'license:read' },
   { key: 'settings', label: 'Settings', path: '/app/settings' },
+  { key: 'audit', label: 'Audit', path: '/app/audit', permission: 'audit:read' },
 ]
 
 export function visibleNavigation(roles: string[], permissions: string[] = []): NavigationItem[] {

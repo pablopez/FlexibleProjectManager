@@ -55,4 +55,7 @@ public class UserJpaEntity {
     void apply(User user) {
         this.displayName = user.displayName(); this.status = user.status(); this.updatedAt = user.updatedAt();
     }
+
+    public String displayName() { return displayName; }
+    public UUID id() { return id; }
 }

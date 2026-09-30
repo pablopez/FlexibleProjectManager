@@ -11,15 +11,25 @@ import com.flexibleprojectmanager.platform.settings.domain.Language;
 import com.flexibleprojectmanager.platform.settings.domain.Theme;
 import com.flexibleprojectmanager.platform.settings.domain.UserPreferences;
 import com.flexibleprojectmanager.platform.shared.application.security.CurrentActor;
+import com.flexibleprojectmanager.platform.audit.application.AuditConstants;
+import com.flexibleprojectmanager.platform.audit.application.AuditEvents;
+import com.flexibleprojectmanager.platform.audit.application.AuditRecorder;
 
 @Service
 public class UserPreferencesService implements UserPreferencesUseCase {
     private final UserPreferencesRepository repository;
     private final Clock clock;
+    private final AuditRecorder audit;
 
     public UserPreferencesService(UserPreferencesRepository repository, Clock clock) {
+        this(repository, clock, event -> {});
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public UserPreferencesService(UserPreferencesRepository repository, Clock clock, AuditRecorder audit) {
         this.repository = repository;
         this.clock = clock;
+        this.audit = audit;
     }
 
     @Override
@@ -38,7 +48,12 @@ public class UserPreferencesService implements UserPreferencesUseCase {
                 ? Language.fromApiValue(requireValue(command.language(), "language")) : current.language();
         Theme theme = command.themeSupplied()
                 ? Theme.fromApiValue(requireValue(command.theme(), "theme")) : current.theme();
-        return repository.save(new UserPreferences(actor.userId(), language, theme, Instant.now(clock)));
+        UserPreferences saved = repository.save(new UserPreferences(actor.userId(), language, theme, Instant.now(clock)));
+        var fields = new java.util.ArrayList<String>();
+        if (command.languageSupplied() && current.language() != language) fields.add("language");
+        if (command.themeSupplied() && current.theme() != theme) fields.add("theme");
+        if (!fields.isEmpty()) AuditEvents.record(audit, actor, "USER_PREFERENCES_UPDATED", AuditConstants.USER_PREFERENCES, actor.userId(), AuditEvents.fields(fields), saved.updatedAt());
+        return saved;
     }
 
     private static String requireValue(String value, String field) {

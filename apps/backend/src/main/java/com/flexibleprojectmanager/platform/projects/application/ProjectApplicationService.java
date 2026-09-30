@@ -9,21 +9,31 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.flexibleprojectmanager.platform.projects.domain.Project;
+import com.flexibleprojectmanager.platform.audit.application.AuditConstants;
+import com.flexibleprojectmanager.platform.audit.application.AuditEvents;
+import com.flexibleprojectmanager.platform.audit.application.AuditRecorder;
+import com.flexibleprojectmanager.platform.audit.domain.AuditMetadata;
 import com.flexibleprojectmanager.platform.shared.application.security.CurrentActor;
 
 @Service
 public class ProjectApplicationService implements CreateProjectUseCase, ProjectManagementUseCase {
     private final ProjectRepository repository;
     private final Clock clock;
+    private final AuditRecorder audit;
 
-    @Autowired
     public ProjectApplicationService(ProjectRepository repository) {
-        this(repository, Clock.systemUTC());
+        this(repository, Clock.systemUTC(), event -> {});
     }
 
     public ProjectApplicationService(ProjectRepository repository, Clock clock) {
+        this(repository, clock, event -> {});
+    }
+
+    @Autowired
+    public ProjectApplicationService(ProjectRepository repository, Clock clock, AuditRecorder audit) {
         this.repository = repository;
         this.clock = clock;
+        this.audit = audit;
     }
 
     @Override
@@ -32,6 +42,7 @@ public class ProjectApplicationService implements CreateProjectUseCase, ProjectM
         actor.requirePermission("projects:create");
         Project project = Project.create(actor.organizationId(), actor.userId(), command.name(), command.description(), Instant.now(clock));
         repository.save(project);
+        AuditEvents.record(audit, actor, "PROJECT_CREATED", AuditConstants.PROJECT, project.id(), null, project.createdAt());
         return project;
     }
 
@@ -51,8 +62,13 @@ public class ProjectApplicationService implements CreateProjectUseCase, ProjectM
         actor.requirePermission("projects:update");
         if (!nameSupplied && !descriptionSupplied) throw new IllegalArgumentException("At least one project field is required.");
         if (nameSupplied && (name == null || name.isBlank())) throw new IllegalArgumentException("Project name is invalid.");
-        Project updated = find(actor.organizationId(), projectId).update(name, nameSupplied, description, descriptionSupplied, Instant.now(clock));
+        Project current = find(actor.organizationId(), projectId);
+        Project updated = current.update(name, nameSupplied, description, descriptionSupplied, Instant.now(clock));
         repository.update(updated);
+        var changed = new java.util.ArrayList<String>();
+        if (nameSupplied && !java.util.Objects.equals(current.name(), updated.name())) changed.add("name");
+        if (descriptionSupplied && !java.util.Objects.equals(current.description(), updated.description())) changed.add("description");
+        if (!changed.isEmpty()) AuditEvents.record(audit, actor, "PROJECT_UPDATED", AuditConstants.PROJECT, updated.id(), AuditEvents.fields(changed), updated.updatedAt());
         return updated;
     }
 
@@ -64,6 +80,7 @@ public class ProjectApplicationService implements CreateProjectUseCase, ProjectM
         if (current.status() == Project.Status.ARCHIVED) throw new ProjectAlreadyArchivedException();
         Project updated = current.archive(Instant.now(clock));
         repository.update(updated);
+        AuditEvents.record(audit, actor, "PROJECT_ARCHIVED", AuditConstants.PROJECT, updated.id(), null, updated.updatedAt());
         return updated;
     }
 
@@ -75,6 +92,7 @@ public class ProjectApplicationService implements CreateProjectUseCase, ProjectM
         if (current.status() == Project.Status.ACTIVE) throw new ProjectAlreadyActiveException();
         Project updated = current.restore(Instant.now(clock));
         repository.update(updated);
+        AuditEvents.record(audit, actor, "PROJECT_RESTORED", AuditConstants.PROJECT, updated.id(), null, updated.updatedAt());
         return updated;
     }
 

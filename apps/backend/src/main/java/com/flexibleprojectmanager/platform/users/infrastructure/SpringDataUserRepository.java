@@ -2,6 +2,8 @@ package com.flexibleprojectmanager.platform.users.infrastructure;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +15,7 @@ import com.flexibleprojectmanager.platform.users.domain.User;
 import com.flexibleprojectmanager.platform.users.domain.OrganizationMember;
 
 public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, UUID> {
+    List<UserJpaEntity> findByIdIn(Collection<UUID> ids);
     boolean existsByEmail(String email);
 
     @Query("select u from UserJpaEntity u where exists (select m.id from OrganizationMemberJpaEntity m where m.userId = u.id and m.organizationId = :organizationId) and (:status is null or u.status = :status)")

@@ -19,6 +19,9 @@ import com.flexibleprojectmanager.platform.users.application.CreateUserUseCase.C
 import com.flexibleprojectmanager.platform.users.application.UserManagementUseCase.UpdateUserCommand;
 import com.flexibleprojectmanager.platform.users.domain.User;
 import com.flexibleprojectmanager.platform.users.domain.OrganizationMember;
+import com.flexibleprojectmanager.platform.audit.application.AuditConstants;
+import com.flexibleprojectmanager.platform.audit.application.AuditEvents;
+import com.flexibleprojectmanager.platform.audit.application.AuditRecorder;
 
 @Service
 public class UserManagementService implements CreateUserUseCase, UserManagementUseCase, ListRolesUseCase {
@@ -27,17 +30,23 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
     private final PasswordHasher passwordHasher;
     private final Clock clock;
     private final UserCapacityPolicy capacityPolicy;
+    private final AuditRecorder audit;
 
-    @Autowired
     public UserManagementService(UserRepository repository, PasswordHasher passwordHasher, UserCapacityPolicy capacityPolicy) {
-        this(repository, passwordHasher, Clock.systemUTC(), capacityPolicy);
+        this(repository, passwordHasher, Clock.systemUTC(), capacityPolicy, event -> {});
     }
 
     UserManagementService(UserRepository repository, PasswordHasher passwordHasher, Clock clock, UserCapacityPolicy capacityPolicy) {
+        this(repository, passwordHasher, clock, capacityPolicy, event -> {});
+    }
+
+    @Autowired
+    public UserManagementService(UserRepository repository, PasswordHasher passwordHasher, Clock clock, UserCapacityPolicy capacityPolicy, AuditRecorder audit) {
         this.repository = repository;
         this.passwordHasher = passwordHasher;
         this.clock = clock;
         this.capacityPolicy = capacityPolicy;
+        this.audit = audit;
     }
 
     @Override
@@ -71,7 +80,9 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
         capacityPolicy.requireCapacityForAdditionalActiveUser(actor.organizationId());
         Instant now = Instant.now(clock);
         User user = User.create(UUID.randomUUID(), email, passwordHasher.hash(command.password()), displayName, now);
-        return view(repository.create(user, actor.organizationId(), roles));
+        UserRepository.UserRecord created = repository.create(user, actor.organizationId(), roles);
+        AuditEvents.record(audit, actor, "USER_CREATED", AuditConstants.USER, user.id(), null, now);
+        return view(created);
     }
 
     @Override
@@ -97,7 +108,16 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
                 && existing.membershipStatus() == OrganizationMember.Status.ACTIVE) {
             capacityPolicy.requireCapacityForAdditionalActiveUser(actor.organizationId());
         }
-        return view(repository.update(actor.organizationId(), userId, displayName, status, Instant.now(clock)));
+        Instant now = Instant.now(clock);
+        UserRepository.UserRecord updated = repository.update(actor.organizationId(), userId, displayName, status, now);
+        if (command.displayNameSupplied() && !java.util.Objects.equals(existing.user().displayName(), updated.user().displayName())) {
+            AuditEvents.record(audit, actor, "USER_UPDATED", AuditConstants.USER, userId, com.flexibleprojectmanager.platform.audit.domain.AuditMetadata.of("displayName"), now);
+        }
+        if (command.statusSupplied() && existing.user().status() != updated.user().status()) {
+            String action = updated.user().status() == User.Status.DISABLED ? "USER_DISABLED" : "USER_REACTIVATED";
+            AuditEvents.record(audit, actor, action, AuditConstants.USER, userId, null, now);
+        }
+        return view(updated);
     }
 
     @Override
@@ -112,7 +132,9 @@ public class UserManagementService implements CreateUserUseCase, UserManagementU
                 && !repository.hasEffectiveActiveAdmin(actor.organizationId(), userId)) {
             throw new LastActiveAdminRequiredException();
         }
-        return view(repository.replaceRoles(actor.organizationId(), userId, roles));
+        UserRepository.UserRecord updated = repository.replaceRoles(actor.organizationId(), userId, roles);
+        if (!existing.roles().equals(updated.roles())) AuditEvents.record(audit, actor, "USER_ROLES_CHANGED", AuditConstants.USER, userId, null, Instant.now(clock));
+        return view(updated);
     }
 
     @Override

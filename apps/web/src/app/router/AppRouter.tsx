@@ -13,6 +13,7 @@ import { UserDetailPage } from '../../pages/users/UserDetailPage'
 import { OrganizationPage } from '../../pages/organization/OrganizationPage'
 import { LicensePage } from '../../pages/license/LicensePage'
 import { SettingsPage } from '../../pages/settings/SettingsPage'
+import { AuditPage } from '../../pages/audit/AuditPage'
 import { resolveProtectedPath, resolveRootPath } from './routePolicy'
 import { useUserPreferences } from '../../shared/preferences/UserPreferencesProvider'
 
@@ -85,7 +86,8 @@ export function AppRouter() {
          <Route path="users/:userId" element={<UserDetailPage />} />
         <Route path="organization" element={<OrganizationPage />} />
         <Route path="license" element={<LicensePage />} />
-        <Route path="settings" element={<SettingsPage />} />
+         <Route path="settings" element={<SettingsPage />} />
+         <Route path="audit" element={<AuditPage />} />
       </Route>
       <Route path="*" element={<RootRedirect />} />
     </Routes>
